@@ -37,7 +37,7 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="auth-logo-icon">S</div>
+          <img src="/logo-icon.png" alt="Solis OS" style={{ width: '36px', height: 'auto' }} />
           Solis OS
         </div>
         <h1 className="auth-title">Welcome back</h1>

@@ -34,7 +34,7 @@ export default function AppShell() {
       {/* Mobile header */}
       <div className="mobile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '17px' }}>
-          <div className="sidebar-logo-icon">S</div>
+          <img src="/logo-icon.png" alt="Solis OS" style={{ width: '32px', height: 'auto' }} />
           Solis OS
         </div>
         <button
@@ -59,7 +59,7 @@ export default function AppShell() {
         </button>
 
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">S</div>
+          <img src="/logo-icon.png" alt="Solis OS" style={{ width: '32px', height: 'auto' }} />
           Solis OS
         </div>
 

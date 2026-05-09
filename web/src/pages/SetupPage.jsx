@@ -182,7 +182,7 @@ export default function SetupPage() {
     <div className="setup-page">
       <div className="setup-card">
         <div className="auth-logo">
-          <div className="auth-logo-icon">S</div>
+          <img src="/logo-icon.png" alt="Solis OS" style={{ width: '36px', height: 'auto' }} />
           Solis OS
         </div>
 
