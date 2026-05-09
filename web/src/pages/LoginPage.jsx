@@ -20,14 +20,17 @@ export default function LoginPage() {
     }
 
     setLoading(true)
-    const result = await signIn(email, password)
-    setLoading(false)
-
-    if (result.error) {
-      setError(result.error.message)
-    } else {
-      navigate('/dashboard')
+    try {
+      const result = await signIn(email, password)
+      if (result.error) {
+        setError(result.error.message)
+      } else {
+        navigate('/dashboard')
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.')
     }
+    setLoading(false)
   }
 
   return (

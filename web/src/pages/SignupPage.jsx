@@ -32,14 +32,17 @@ export default function SignupPage() {
     }
 
     setLoading(true)
-    const result = await signUp(email, password, fullName)
-    setLoading(false)
-
-    if (result.error) {
-      setError(result.error.message)
-    } else {
-      navigate('/setup')
+    try {
+      const result = await signUp(email, password, fullName)
+      if (result.error) {
+        setError(result.error.message)
+      } else {
+        navigate('/setup')
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.')
     }
+    setLoading(false)
   }
 
   return (
