@@ -19,18 +19,15 @@ function ProtectedRoute({ children }) {
   const [business, setBusiness] = useState(undefined)
 
   useEffect(() => {
-    if (!user) {
-      setBusiness(null)
-      return
-    }
+    if (!user) return
     const fetchBusiness = async () => {
       const biz = await dataStore.getBusiness(user.id)
-      setBusiness(biz)
+      setBusiness(biz ?? null)
     }
     fetchBusiness()
   }, [user])
 
-  if (loading || business === undefined) {
+  if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', color: 'var(--text-secondary)' }}>
         Loading...
@@ -40,7 +37,14 @@ function ProtectedRoute({ children }) {
 
   if (!user) return <Navigate to="/login" replace />
 
-  // If user has no business yet, redirect to setup
+  if (business === undefined) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', color: 'var(--text-secondary)' }}>
+        Loading...
+      </div>
+    )
+  }
+
   if (!business && !window.location.pathname.startsWith('/setup')) {
     return <Navigate to="/setup" replace />
   }

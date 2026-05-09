@@ -231,7 +231,7 @@ export default function SetupPage() {
     }
 
     setLoading(false)
-    navigate('/dashboard')
+    window.location.href = '/dashboard'
   }
 
   return (
