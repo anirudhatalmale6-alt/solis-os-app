@@ -74,6 +74,8 @@ export default function SetupPage() {
   const [addressSuggestions, setAddressSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [countryCode, setCountryCode] = useState('')
+  const [detectedLat, setDetectedLat] = useState(null)
+  const [detectedLon, setDetectedLon] = useState(null)
   const addressTimeout = useRef(null)
 
   useEffect(() => {
@@ -89,6 +91,8 @@ export default function SetupPage() {
         if (data.city && !city) setCity(data.city)
         if (data.country_name && !country) setCountry(data.country_name)
         if (data.country_code) setCountryCode(data.country_code.toLowerCase())
+        if (data.latitude) setDetectedLat(data.latitude)
+        if (data.longitude) setDetectedLon(data.longitude)
         if (data.timezone && timezone === 'UTC') setTimezone(data.timezone)
         const currMap = { USD: 'USD', EUR: 'EUR', GBP: 'GBP', CAD: 'CAD', AUD: 'AUD', INR: 'INR' }
         if (data.currency && currMap[data.currency]) setCurrency(data.currency)
@@ -104,7 +108,12 @@ export default function SetupPage() {
     addressTimeout.current = setTimeout(async () => {
       try {
         const countryParam = countryCode ? `&countrycodes=${countryCode}` : ''
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1${countryParam}`)
+        let viewboxParam = ''
+        if (detectedLat && detectedLon) {
+          const offset = 0.5
+          viewboxParam = `&viewbox=${detectedLon - offset},${detectedLat + offset},${detectedLon + offset},${detectedLat - offset}&bounded=0`
+        }
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1${countryParam}${viewboxParam}`)
         if (res.ok) {
           const results = await res.json()
           setAddressSuggestions(results.map(r => ({
