@@ -49,8 +49,7 @@ export default function SignupPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <img src="/logo-icon.png" alt="Solis OS" style={{ width: '36px', height: 'auto' }} />
-          Solis OS
+          <img src="/logo-full.png" alt="Solis OS" style={{ height: '130px', width: 'auto' }} />
         </div>
         <h1 className="auth-title">Create your account</h1>
         <p className="auth-subtitle">Start managing your business in minutes</p>

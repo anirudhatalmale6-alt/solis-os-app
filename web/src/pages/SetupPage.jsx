@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
@@ -70,6 +70,59 @@ export default function SetupPage() {
   const [newStaffEmail, setNewStaffEmail] = useState('')
 
   const [error, setError] = useState('')
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [addressSuggestions, setAddressSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const addressTimeout = useRef(null)
+
+  useEffect(() => {
+    autoDetectLocation()
+  }, [])
+
+  const autoDetectLocation = async () => {
+    setLocationLoading(true)
+    try {
+      const res = await fetch('https://ipapi.co/json/')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.city && !city) setCity(data.city)
+        if (data.country_name && !country) setCountry(data.country_name)
+        if (data.timezone && timezone === 'UTC') setTimezone(data.timezone)
+        const currMap = { USD: 'USD', EUR: 'EUR', GBP: 'GBP', CAD: 'CAD', AUD: 'AUD', INR: 'INR' }
+        if (data.currency && currMap[data.currency]) setCurrency(data.currency)
+      }
+    } catch {}
+    setLocationLoading(false)
+  }
+
+  const searchAddress = (query) => {
+    setAddress(query)
+    if (addressTimeout.current) clearTimeout(addressTimeout.current)
+    if (query.length < 3) { setAddressSuggestions([]); setShowSuggestions(false); return }
+    addressTimeout.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`)
+        if (res.ok) {
+          const results = await res.json()
+          setAddressSuggestions(results.map(r => ({
+            display: r.display_name,
+            address: r.address?.road ? `${r.address.house_number || ''} ${r.address.road}`.trim() : r.display_name.split(',')[0],
+            city: r.address?.city || r.address?.town || r.address?.village || '',
+            country: r.address?.country || '',
+          })))
+          setShowSuggestions(true)
+        }
+      } catch {}
+    }, 400)
+  }
+
+  const selectAddress = (suggestion) => {
+    setAddress(suggestion.address)
+    if (suggestion.city) setCity(suggestion.city)
+    if (suggestion.country) setCountry(suggestion.country)
+    setShowSuggestions(false)
+    setAddressSuggestions([])
+  }
 
   const loadTemplates = () => {
     const templates = INDUSTRY_TEMPLATES[industry] || []
@@ -182,8 +235,7 @@ export default function SetupPage() {
     <div className="setup-page">
       <div className="setup-card">
         <div className="auth-logo">
-          <img src="/logo-icon.png" alt="Solis OS" style={{ width: '36px', height: 'auto' }} />
-          Solis OS
+          <img src="/logo-full.png" alt="Solis OS" style={{ height: '130px', width: 'auto' }} />
         </div>
 
         <div className="setup-steps">
@@ -254,16 +306,30 @@ export default function SetupPage() {
         {step === 2 && (
           <>
             <h2 className="auth-title">Location & preferences</h2>
-            <p className="auth-subtitle">Where are you based?</p>
-            <div className="form-group">
+            <p className="auth-subtitle">
+              {locationLoading ? 'Detecting your location...' : 'Where are you based?'}
+            </p>
+            <div className="form-group" style={{ position: 'relative' }}>
               <label className="form-label">Address</label>
               <input
                 type="text"
                 className="form-input"
-                placeholder="123 Main Street"
+                placeholder="Start typing your address..."
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={(e) => searchAddress(e.target.value)}
+                onFocus={() => addressSuggestions.length > 0 && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                autoComplete="off"
               />
+              {showSuggestions && addressSuggestions.length > 0 && (
+                <div className="address-suggestions">
+                  {addressSuggestions.map((s, i) => (
+                    <div key={i} className="address-suggestion" onMouseDown={() => selectAddress(s)}>
+                      {s.display.length > 80 ? s.display.slice(0, 80) + '...' : s.display}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="form-group">
               <label className="form-label">City</label>
