@@ -117,11 +117,17 @@ export default function SetupPage() {
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + cityHint)}&limit=5&addressdetails=1${countryParam}${viewboxParam}`)
         if (res.ok) {
           const results = await res.json()
+          const userNumMatch = query.trim().match(/^(\d+[\w/.-]*)\s/)
+          const userNumber = userNumMatch ? userNumMatch[1] : ''
           setAddressSuggestions(results.map(r => {
             const a = r.address || {}
             const parts = []
-            if (a.house_number) parts.push(a.house_number)
-            if (a.road) parts.push(a.road)
+            const houseNum = a.house_number || userNumber
+            if (a.road) {
+              parts.push(houseNum ? `${houseNum} ${a.road}` : a.road)
+            } else if (houseNum) {
+              parts.push(houseNum)
+            }
             if (a.suburb || a.neighbourhood) parts.push(a.suburb || a.neighbourhood)
             if (a.postcode) parts.push(a.postcode)
             const fullAddr = parts.length > 0 ? parts.join(', ') : r.display_name.split(',').slice(0, 3).join(',').trim()
