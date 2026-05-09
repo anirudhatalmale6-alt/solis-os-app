@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { store } from '../lib/store'
+import { dataStore } from '../lib/dataStore'
 
 export default function ServicesPage() {
   const { user } = useAuth()
@@ -13,12 +13,12 @@ export default function ServicesPage() {
   const [formDuration, setFormDuration] = useState('')
   const [formActive, setFormActive] = useState(true)
 
-  const loadData = () => {
+  const loadData = async () => {
     if (!user) return
-    const biz = store.getBusiness(user.id)
+    const biz = await dataStore.getBusiness(user.id)
     if (biz) {
       setBusiness(biz)
-      setServices(store.getServices(biz.id))
+      setServices(await dataStore.getServices(biz.id))
     }
   }
 
@@ -46,18 +46,18 @@ export default function ServicesPage() {
     setShowModal(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formName || !formPrice || !formDuration) return
 
     if (editing) {
-      store.updateService(editing.id, {
+      await dataStore.updateService(editing.id, {
         name: formName,
         price: parseFloat(formPrice),
         duration: parseInt(formDuration),
         is_active: formActive,
       })
     } else {
-      store.addService({
+      await dataStore.addService({
         business_id: business.id,
         name: formName,
         price: parseFloat(formPrice),
@@ -67,13 +67,13 @@ export default function ServicesPage() {
 
     setShowModal(false)
     resetForm()
-    loadData()
+    await loadData()
   }
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!confirm('Delete this service?')) return
-    store.deleteService(id)
-    loadData()
+    await dataStore.deleteService(id)
+    await loadData()
   }
 
   return (

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { store } from '../lib/store'
+import { dataStore } from '../lib/dataStore'
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -78,16 +78,19 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!user) return
-    const biz = store.getBusiness(user.id)
-    if (biz) {
-      setBusiness(biz)
-      setServices(store.getServices(biz.id))
-      setStaff(store.getStaff(biz.id))
-      const today = todayStr()
-      const allBookings = store.getBookings(biz.id)
-      setTodayBookings(allBookings.filter(b => b.date === today))
-      setUpcomingCount(allBookings.filter(b => b.date >= today && b.status === 'confirmed').length)
+    const loadData = async () => {
+      const biz = await dataStore.getBusiness(user.id)
+      if (biz) {
+        setBusiness(biz)
+        setServices(await dataStore.getServices(biz.id))
+        setStaff(await dataStore.getStaff(biz.id))
+        const today = todayStr()
+        const allBookings = await dataStore.getBookings(biz.id)
+        setTodayBookings(allBookings.filter(b => b.date === today))
+        setUpcomingCount(allBookings.filter(b => b.date >= today && b.status === 'confirmed').length)
+      }
     }
+    loadData()
   }, [user])
 
   const firstName = user?.full_name?.split(' ')[0] || 'there'

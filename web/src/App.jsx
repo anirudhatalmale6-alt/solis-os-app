@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
-import { store } from './lib/store'
+import { dataStore } from './lib/dataStore'
 import AppShell from './components/AppShell'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
@@ -15,8 +16,21 @@ import BookingPublicPage from './pages/BookingPublicPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
+  const [business, setBusiness] = useState(undefined)
 
-  if (loading) {
+  useEffect(() => {
+    if (!user) {
+      setBusiness(null)
+      return
+    }
+    const fetchBusiness = async () => {
+      const biz = await dataStore.getBusiness(user.id)
+      setBusiness(biz)
+    }
+    fetchBusiness()
+  }, [user])
+
+  if (loading || business === undefined) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', color: 'var(--text-secondary)' }}>
         Loading...
@@ -27,7 +41,6 @@ function ProtectedRoute({ children }) {
   if (!user) return <Navigate to="/login" replace />
 
   // If user has no business yet, redirect to setup
-  const business = store.getBusiness(user.id)
   if (!business && !window.location.pathname.startsWith('/setup')) {
     return <Navigate to="/setup" replace />
   }
@@ -37,8 +50,21 @@ function ProtectedRoute({ children }) {
 
 function PublicRoute({ children }) {
   const { user, loading } = useAuth()
+  const [business, setBusiness] = useState(undefined)
 
-  if (loading) {
+  useEffect(() => {
+    if (!user) {
+      setBusiness(null)
+      return
+    }
+    const fetchBusiness = async () => {
+      const biz = await dataStore.getBusiness(user.id)
+      setBusiness(biz)
+    }
+    fetchBusiness()
+  }, [user])
+
+  if (loading || (user && business === undefined)) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', color: 'var(--text-secondary)' }}>
         Loading...
@@ -47,7 +73,6 @@ function PublicRoute({ children }) {
   }
 
   if (user) {
-    const business = store.getBusiness(user.id)
     return <Navigate to={business ? '/dashboard' : '/setup'} replace />
   }
 

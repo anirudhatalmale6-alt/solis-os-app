@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { store } from '../lib/store'
+import { dataStore } from '../lib/dataStore'
 
 const INDUSTRY_TEMPLATES = {
   salon: [
@@ -133,7 +133,7 @@ export default function SetupPage() {
     setError('')
 
     // Create business
-    const bizResult = store.createBusiness({
+    const bizResult = await dataStore.createBusiness({
       owner_id: user.id,
       name: businessName,
       industry,
@@ -156,7 +156,7 @@ export default function SetupPage() {
 
     // Create services
     for (const svc of services) {
-      store.addService({
+      await dataStore.addService({
         business_id: businessId,
         name: svc.name,
         price: svc.price,
@@ -166,7 +166,7 @@ export default function SetupPage() {
 
     // Create staff
     for (const member of staffList) {
-      store.addStaff({
+      await dataStore.addStaff({
         business_id: businessId,
         name: member.name,
         role: member.role,

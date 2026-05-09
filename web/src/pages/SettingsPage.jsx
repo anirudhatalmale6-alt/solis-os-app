@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { store } from '../lib/store'
+import { dataStore } from '../lib/dataStore'
 
 const CURRENCIES = [
   { code: 'USD', label: 'USD ($)' },
@@ -29,24 +29,27 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!user) return
-    const biz = store.getBusiness(user.id)
-    if (biz) {
-      setBusiness(biz)
-      setName(biz.name || '')
-      setIndustry(biz.industry || 'salon')
-      setPhone(biz.phone || '')
-      setEmail(biz.email || '')
-      setAddress(biz.address || '')
-      setCity(biz.city || '')
-      setCountry(biz.country || '')
-      setTimezone(biz.timezone || '')
-      setCurrency(biz.currency || 'USD')
+    const loadData = async () => {
+      const biz = await dataStore.getBusiness(user.id)
+      if (biz) {
+        setBusiness(biz)
+        setName(biz.name || '')
+        setIndustry(biz.industry || 'salon')
+        setPhone(biz.phone || '')
+        setEmail(biz.email || '')
+        setAddress(biz.address || '')
+        setCity(biz.city || '')
+        setCountry(biz.country || '')
+        setTimezone(biz.timezone || '')
+        setCurrency(biz.currency || 'USD')
+      }
     }
+    loadData()
   }, [user])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!business) return
-    store.updateBusiness(business.id, {
+    await dataStore.updateBusiness(business.id, {
       name, industry, phone, email,
       address, city, country, timezone, currency,
     })

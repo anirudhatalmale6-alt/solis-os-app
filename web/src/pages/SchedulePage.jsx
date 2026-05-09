@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { store } from '../lib/store'
+import { dataStore } from '../lib/dataStore'
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 const DAY_LABELS = {
@@ -22,11 +22,14 @@ export default function SchedulePage() {
 
   useEffect(() => {
     if (!user) return
-    const biz = store.getBusiness(user.id)
-    if (biz) {
-      setBusiness(biz)
-      setSchedule(store.getSchedule(biz.id))
+    const loadData = async () => {
+      const biz = await dataStore.getBusiness(user.id)
+      if (biz) {
+        setBusiness(biz)
+        setSchedule(await dataStore.getSchedule(biz.id))
+      }
     }
+    loadData()
   }, [user])
 
   const handleToggle = (day) => {
@@ -45,9 +48,9 @@ export default function SchedulePage() {
     setSaved(false)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!business) return
-    store.setSchedule(business.id, schedule)
+    await dataStore.setSchedule(business.id, schedule)
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }

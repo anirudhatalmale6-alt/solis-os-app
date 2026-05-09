@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { store } from '../lib/store'
+import { dataStore } from '../lib/dataStore'
 
 const DAYS_OF_WEEK = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
@@ -76,18 +76,50 @@ export default function BookingPublicPage() {
   const [customerEmail, setCustomerEmail] = useState('')
   const [booked, setBooked] = useState(false)
 
+  // Async-loaded day data
+  const [dayBookings, setDayBookings] = useState([])
+  const [timeSlots, setTimeSlots] = useState([])
+
   const dates = getNext14Days()
 
   useEffect(() => {
-    const biz = store.getBusinessById(businessId)
-    if (!biz) {
-      setNotFound(true)
+    const loadInitial = async () => {
+      const biz = await dataStore.getBusinessById(businessId)
+      if (!biz) {
+        setNotFound(true)
+        return
+      }
+      setBusiness(biz)
+      const allServices = await dataStore.getServices(businessId)
+      setServices(allServices.filter(s => s.is_active !== false))
+      setSchedule(await dataStore.getSchedule(businessId))
+    }
+    loadInitial()
+  }, [businessId])
+
+  // Load day bookings and time slots when date/service/schedule change
+  useEffect(() => {
+    if (!selectedDate || !selectedService || !schedule) {
+      setTimeSlots([])
+      setDayBookings([])
       return
     }
-    setBusiness(biz)
-    setServices(store.getServices(businessId).filter(s => s.is_active !== false))
-    setSchedule(store.getSchedule(businessId))
-  }, [businessId])
+    const loadDayData = async () => {
+      const d = new Date(selectedDate + 'T00:00:00')
+      const dayKey = DAYS_OF_WEEK[d.getDay()]
+      const daySchedule = schedule[dayKey]
+      if (daySchedule && daySchedule.enabled) {
+        const slots = generateTimeSlots(daySchedule.open, daySchedule.close, selectedService.duration || 30)
+        const bookings = await dataStore.getBookingsByDate(businessId, selectedDate)
+        setTimeSlots(slots)
+        setDayBookings(bookings)
+      } else {
+        setTimeSlots([])
+        setDayBookings([])
+      }
+    }
+    loadDayData()
+  }, [selectedDate, selectedService, schedule, businessId])
 
   if (notFound) {
     return (
@@ -104,19 +136,6 @@ export default function BookingPublicPage() {
   }
 
   if (!business) return null
-
-  // Get available time slots for selected date
-  let timeSlots = []
-  let dayBookings = []
-  if (selectedDate && selectedService && schedule) {
-    const d = new Date(selectedDate + 'T00:00:00')
-    const dayKey = DAYS_OF_WEEK[d.getDay()]
-    const daySchedule = schedule[dayKey]
-    if (daySchedule && daySchedule.enabled) {
-      timeSlots = generateTimeSlots(daySchedule.open, daySchedule.close, selectedService.duration || 30)
-      dayBookings = store.getBookingsByDate(businessId, selectedDate)
-    }
-  }
 
   const handleSelectService = (svc) => {
     setSelectedService(svc)
@@ -141,8 +160,8 @@ export default function BookingPublicPage() {
     setStep(4)
   }
 
-  const handleConfirm = () => {
-    store.addBooking({
+  const handleConfirm = async () => {
+    await dataStore.addBooking({
       business_id: businessId,
       service_id: selectedService.id,
       service_name: selectedService.name,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { store } from '../lib/store'
+import { dataStore } from '../lib/dataStore'
 
 export default function StaffPage() {
   const { user } = useAuth()
@@ -13,12 +13,12 @@ export default function StaffPage() {
   const [formEmail, setFormEmail] = useState('')
   const [formActive, setFormActive] = useState(true)
 
-  const loadData = () => {
+  const loadData = async () => {
     if (!user) return
-    const biz = store.getBusiness(user.id)
+    const biz = await dataStore.getBusiness(user.id)
     if (biz) {
       setBusiness(biz)
-      setStaff(store.getStaff(biz.id))
+      setStaff(await dataStore.getStaff(biz.id))
     }
   }
 
@@ -46,18 +46,18 @@ export default function StaffPage() {
     setShowModal(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formName || !formRole) return
 
     if (editing) {
-      store.updateStaff(editing.id, {
+      await dataStore.updateStaff(editing.id, {
         name: formName,
         role: formRole,
         email: formEmail,
         is_active: formActive,
       })
     } else {
-      store.addStaff({
+      await dataStore.addStaff({
         business_id: business.id,
         name: formName,
         role: formRole,
@@ -67,13 +67,13 @@ export default function StaffPage() {
 
     setShowModal(false)
     resetForm()
-    loadData()
+    await loadData()
   }
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!confirm('Remove this staff member?')) return
-    store.deleteStaff(id)
-    loadData()
+    await dataStore.deleteStaff(id)
+    await loadData()
   }
 
   const getInitials = (name) => {

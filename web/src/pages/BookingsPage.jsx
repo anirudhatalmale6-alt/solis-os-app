@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { store } from '../lib/store'
+import { dataStore } from '../lib/dataStore'
 
 function formatDateLabel(dateStr) {
   const d = new Date(dateStr + 'T00:00:00')
@@ -24,26 +24,26 @@ export default function BookingsPage() {
   const [selectedDate, setSelectedDate] = useState(todayStr())
   const [bookings, setBookings] = useState([])
 
-  const loadData = () => {
+  const loadData = async () => {
     if (!user) return
-    const biz = store.getBusiness(user.id)
+    const biz = await dataStore.getBusiness(user.id)
     if (biz) {
       setBusiness(biz)
-      const dayBookings = store.getBookingsByDate(biz.id, selectedDate)
+      const dayBookings = await dataStore.getBookingsByDate(biz.id, selectedDate)
       setBookings(dayBookings.sort((a, b) => (a.time || '').localeCompare(b.time || '')))
     }
   }
 
   useEffect(() => { loadData() }, [user, selectedDate])
 
-  const handleComplete = (id) => {
-    store.updateBooking(id, { status: 'completed' })
-    loadData()
+  const handleComplete = async (id) => {
+    await dataStore.updateBooking(id, { status: 'completed' })
+    await loadData()
   }
 
-  const handleCancel = (id) => {
-    store.cancelBooking(id)
-    loadData()
+  const handleCancel = async (id) => {
+    await dataStore.cancelBooking(id)
+    await loadData()
   }
 
   const confirmedCount = bookings.filter(b => b.status === 'confirmed').length
