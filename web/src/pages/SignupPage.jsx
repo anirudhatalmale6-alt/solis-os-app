@@ -44,7 +44,7 @@ export default function SignupPage() {
       if (result.error) {
         setError(result.error.message)
       } else {
-        navigate('/setup')
+        navigate('/verify-email')
       }
     } catch (err) {
       setError('Something went wrong. Please try again.')

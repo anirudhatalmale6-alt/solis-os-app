@@ -110,10 +110,11 @@ export default function SetupPage() {
         const countryParam = countryCode ? `&countrycodes=${countryCode}` : ''
         let viewboxParam = ''
         if (detectedLat && detectedLon) {
-          const offset = 0.5
+          const offset = 0.3
           viewboxParam = `&viewbox=${detectedLon - offset},${detectedLat + offset},${detectedLon + offset},${detectedLat - offset}&bounded=0`
         }
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1${countryParam}${viewboxParam}`)
+        const cityHint = city && !query.toLowerCase().includes(city.toLowerCase()) ? `, ${city}` : ''
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + cityHint)}&limit=5&addressdetails=1${countryParam}${viewboxParam}`)
         if (res.ok) {
           const results = await res.json()
           setAddressSuggestions(results.map(r => ({

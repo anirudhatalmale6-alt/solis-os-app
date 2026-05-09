@@ -13,6 +13,7 @@ import SettingsPage from './pages/SettingsPage'
 import SchedulePage from './pages/SchedulePage'
 import BookingsPage from './pages/BookingsPage'
 import BookingPublicPage from './pages/BookingPublicPage'
+import VerifyEmailPage from './pages/VerifyEmailPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -45,7 +46,7 @@ function ProtectedRoute({ children }) {
     )
   }
 
-  if (!business && !window.location.pathname.startsWith('/setup')) {
+  if (!business && !window.location.pathname.startsWith('/setup') && !window.location.pathname.startsWith('/verify')) {
     return <Navigate to="/setup" replace />
   }
 
@@ -91,7 +92,8 @@ function AppRoutes() {
       <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
       <Route path="/book/:businessId" element={<BookingPublicPage />} />
 
-      {/* Setup (protected but no shell) */}
+      {/* Verification & Setup (protected but no shell) */}
+      <Route path="/verify-email" element={<ProtectedRoute><VerifyEmailPage /></ProtectedRoute>} />
       <Route path="/setup" element={<ProtectedRoute><SetupPage /></ProtectedRoute>} />
 
       {/* Protected routes with AppShell */}
