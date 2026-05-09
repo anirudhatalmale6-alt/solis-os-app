@@ -10,7 +10,7 @@ function getGreeting() {
   return 'Good evening'
 }
 
-function getInsights(business, services, staff) {
+function getInsights(business, services, staff, todayBookings) {
   const insights = []
 
   if (services.length === 0) {
@@ -45,22 +45,27 @@ function getInsights(business, services, staff) {
     })
   }
 
+  if (todayBookings.length === 0 && services.length > 0) {
+    insights.push({
+      icon: '🔗',
+      text: 'Share your booking link with customers to start receiving online appointments.',
+    })
+  } else if (todayBookings.length > 0) {
+    const confirmed = todayBookings.filter(b => b.status === 'confirmed').length
+    if (confirmed > 0) {
+      insights.push({
+        icon: '📅',
+        text: `You have ${confirmed} confirmed booking${confirmed > 1 ? 's' : ''} today. Keep your schedule updated!`,
+      })
+    }
+  }
+
   return insights
 }
 
-function formatDate(iso) {
-  try {
-    return new Date(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-  } catch {
-    return 'N/A'
-  }
-}
-
-const INDUSTRY_LABELS = {
-  salon: 'Salon & Beauty',
-  garage: 'Auto Garage',
-  clinic: 'Clinic & Health',
-  other: 'Other',
+function todayStr() {
+  const d = new Date()
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
 }
 
 export default function DashboardPage() {
@@ -68,6 +73,8 @@ export default function DashboardPage() {
   const [business, setBusiness] = useState(null)
   const [services, setServices] = useState([])
   const [staff, setStaff] = useState([])
+  const [todayBookings, setTodayBookings] = useState([])
+  const [upcomingCount, setUpcomingCount] = useState(0)
 
   useEffect(() => {
     if (!user) return
@@ -76,11 +83,15 @@ export default function DashboardPage() {
       setBusiness(biz)
       setServices(store.getServices(biz.id))
       setStaff(store.getStaff(biz.id))
+      const today = todayStr()
+      const allBookings = store.getBookings(biz.id)
+      setTodayBookings(allBookings.filter(b => b.date === today))
+      setUpcomingCount(allBookings.filter(b => b.date >= today && b.status === 'confirmed').length)
     }
   }, [user])
 
   const firstName = user?.full_name?.split(' ')[0] || 'there'
-  const insights = getInsights(business, services, staff)
+  const insights = getInsights(business, services, staff, todayBookings)
 
   return (
     <>
@@ -101,18 +112,14 @@ export default function DashboardPage() {
           <div className="stat-card-value">{staff.length}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon">🏢</div>
-          <div className="stat-card-label">Industry</div>
-          <div className="stat-card-value" style={{ fontSize: '18px' }}>
-            {business ? (INDUSTRY_LABELS[business.industry] || business.industry) : '--'}
-          </div>
+          <div className="stat-card-icon">📅</div>
+          <div className="stat-card-label">Today's Bookings</div>
+          <div className="stat-card-value">{todayBookings.length}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon">📅</div>
-          <div className="stat-card-label">Member Since</div>
-          <div className="stat-card-value" style={{ fontSize: '18px' }}>
-            {business ? formatDate(business.created_at) : '--'}
-          </div>
+          <div className="stat-card-icon">📈</div>
+          <div className="stat-card-label">Upcoming</div>
+          <div className="stat-card-value">{upcomingCount}</div>
         </div>
       </div>
 
@@ -143,6 +150,10 @@ export default function DashboardPage() {
           <Link to="/settings" className="quick-action">
             <span className="quick-action-icon">✏️</span>
             <span className="quick-action-label">Edit Business</span>
+          </Link>
+          <Link to="/schedule" className="quick-action">
+            <span className="quick-action-icon">🔗</span>
+            <span className="quick-action-label">Share Booking Link</span>
           </Link>
         </div>
       </div>

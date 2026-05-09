@@ -9,6 +9,9 @@ import DashboardPage from './pages/DashboardPage'
 import ServicesPage from './pages/ServicesPage'
 import StaffPage from './pages/StaffPage'
 import SettingsPage from './pages/SettingsPage'
+import SchedulePage from './pages/SchedulePage'
+import BookingsPage from './pages/BookingsPage'
+import BookingPublicPage from './pages/BookingPublicPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -57,6 +60,7 @@ function AppRoutes() {
       {/* Public routes */}
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+      <Route path="/book/:businessId" element={<BookingPublicPage />} />
 
       {/* Setup (protected but no shell) */}
       <Route path="/setup" element={<ProtectedRoute><SetupPage /></ProtectedRoute>} />
@@ -67,6 +71,8 @@ function AppRoutes() {
         <Route path="/services" element={<ServicesPage />} />
         <Route path="/staff" element={<StaffPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/schedule" element={<SchedulePage />} />
+        <Route path="/bookings" element={<BookingsPage />} />
       </Route>
 
       {/* Default redirect */}

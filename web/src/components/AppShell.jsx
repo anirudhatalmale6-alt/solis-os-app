@@ -4,7 +4,8 @@ import { useAuth } from '../hooks/useAuth'
 
 const NAV_ITEMS = [
   { to: '/dashboard', icon: '📊', label: 'Dashboard' },
-  { to: '/bookings', icon: '📅', label: 'Bookings', disabled: true, badge: 'Coming Soon' },
+  { to: '/bookings', icon: '📅', label: 'Bookings' },
+  { to: '/schedule', icon: '🕐', label: 'Schedule' },
   { to: '/customers', icon: '👤', label: 'Customers', disabled: true, badge: 'Coming Soon' },
   { to: '/messages', icon: '💬', label: 'Messages', disabled: true, badge: 'Coming Soon' },
   { to: '/services', icon: '🛠', label: 'Services' },

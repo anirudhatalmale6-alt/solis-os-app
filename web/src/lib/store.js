@@ -3,8 +3,8 @@ const STORAGE_KEY = 'solis_os_data'
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : { users: [], businesses: [], services: [], staff: [], customers: [] }
-  } catch { return { users: [], businesses: [], services: [], staff: [], customers: [] } }
+    return raw ? JSON.parse(raw) : { users: [], businesses: [], services: [], staff: [], customers: [], schedules: [], bookings: [] }
+  } catch { return { users: [], businesses: [], services: [], staff: [], customers: [], schedules: [], bookings: [] } }
 }
 
 function save(data) {
@@ -157,5 +157,74 @@ export const store = {
     data.customers = data.customers.filter(c => c.id !== id)
     save(data)
     return { error: null }
+  },
+
+  setSchedule(businessId, schedule) {
+    const data = load()
+    if (!data.schedules) data.schedules = []
+    const idx = data.schedules.findIndex(s => s.business_id === businessId)
+    if (idx === -1) {
+      data.schedules.push({ business_id: businessId, ...schedule })
+    } else {
+      data.schedules[idx] = { business_id: businessId, ...schedule }
+    }
+    save(data)
+  },
+
+  getSchedule(businessId) {
+    const data = load()
+    if (!data.schedules) data.schedules = []
+    const found = data.schedules.find(s => s.business_id === businessId)
+    if (found) return found
+    return {
+      business_id: businessId,
+      monday: { open: '09:00', close: '17:00', enabled: true },
+      tuesday: { open: '09:00', close: '17:00', enabled: true },
+      wednesday: { open: '09:00', close: '17:00', enabled: true },
+      thursday: { open: '09:00', close: '17:00', enabled: true },
+      friday: { open: '09:00', close: '17:00', enabled: true },
+      saturday: { open: '09:00', close: '17:00', enabled: false },
+      sunday: { open: '09:00', close: '17:00', enabled: false },
+    }
+  },
+
+  addBooking(booking) {
+    const data = load()
+    if (!data.bookings) data.bookings = []
+    const b = { id: uid(), ...booking, status: booking.status || 'confirmed', created_at: new Date().toISOString() }
+    data.bookings.push(b)
+    save(data)
+    return { data: b, error: null }
+  },
+
+  getBookings(businessId) {
+    const data = load()
+    if (!data.bookings) data.bookings = []
+    return data.bookings.filter(b => b.business_id === businessId)
+  },
+
+  updateBooking(id, updates) {
+    const data = load()
+    if (!data.bookings) data.bookings = []
+    const idx = data.bookings.findIndex(b => b.id === id)
+    if (idx === -1) return { error: { message: 'Booking not found' } }
+    data.bookings[idx] = { ...data.bookings[idx], ...updates }
+    save(data)
+    return { data: data.bookings[idx], error: null }
+  },
+
+  cancelBooking(id) {
+    return this.updateBooking(id, { status: 'cancelled' })
+  },
+
+  getBookingsByDate(businessId, date) {
+    const data = load()
+    if (!data.bookings) data.bookings = []
+    return data.bookings.filter(b => b.business_id === businessId && b.date === date)
+  },
+
+  getBusinessById(id) {
+    const data = load()
+    return data.businesses.find(b => b.id === id) || null
   }
 }
