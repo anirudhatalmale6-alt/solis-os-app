@@ -117,12 +117,21 @@ export default function SetupPage() {
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + cityHint)}&limit=5&addressdetails=1${countryParam}${viewboxParam}`)
         if (res.ok) {
           const results = await res.json()
-          setAddressSuggestions(results.map(r => ({
-            display: r.display_name,
-            address: r.address?.road ? `${r.address.house_number || ''} ${r.address.road}`.trim() : r.display_name.split(',')[0],
-            city: r.address?.city || r.address?.town || r.address?.village || '',
-            country: r.address?.country || '',
-          })))
+          setAddressSuggestions(results.map(r => {
+            const a = r.address || {}
+            const parts = []
+            if (a.house_number) parts.push(a.house_number)
+            if (a.road) parts.push(a.road)
+            if (a.suburb || a.neighbourhood) parts.push(a.suburb || a.neighbourhood)
+            if (a.postcode) parts.push(a.postcode)
+            const fullAddr = parts.length > 0 ? parts.join(', ') : r.display_name.split(',').slice(0, 3).join(',').trim()
+            return {
+              display: r.display_name,
+              address: fullAddr,
+              city: a.city || a.town || a.village || '',
+              country: a.country || '',
+            }
+          }))
           setShowSuggestions(true)
         }
       } catch {}
