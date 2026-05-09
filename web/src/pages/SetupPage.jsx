@@ -73,6 +73,7 @@ export default function SetupPage() {
   const [locationLoading, setLocationLoading] = useState(false)
   const [addressSuggestions, setAddressSuggestions] = useState([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [countryCode, setCountryCode] = useState('')
   const addressTimeout = useRef(null)
 
   useEffect(() => {
@@ -87,6 +88,7 @@ export default function SetupPage() {
         const data = await res.json()
         if (data.city && !city) setCity(data.city)
         if (data.country_name && !country) setCountry(data.country_name)
+        if (data.country_code) setCountryCode(data.country_code.toLowerCase())
         if (data.timezone && timezone === 'UTC') setTimezone(data.timezone)
         const currMap = { USD: 'USD', EUR: 'EUR', GBP: 'GBP', CAD: 'CAD', AUD: 'AUD', INR: 'INR' }
         if (data.currency && currMap[data.currency]) setCurrency(data.currency)
@@ -101,7 +103,8 @@ export default function SetupPage() {
     if (query.length < 3) { setAddressSuggestions([]); setShowSuggestions(false); return }
     addressTimeout.current = setTimeout(async () => {
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`)
+        const countryParam = countryCode ? `&countrycodes=${countryCode}` : ''
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1${countryParam}`)
         if (res.ok) {
           const results = await res.json()
           setAddressSuggestions(results.map(r => ({

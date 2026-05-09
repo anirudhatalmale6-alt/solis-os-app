@@ -7,8 +7,10 @@ export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [agreeTerms, setAgreeTerms] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
 
@@ -28,6 +30,11 @@ export default function SignupPage() {
 
     if (password !== confirmPassword) {
       setError('Passwords do not match')
+      return
+    }
+
+    if (!agreeTerms) {
+      setError('You must agree to the Terms of Service and Privacy Policy')
       return
     }
 
@@ -101,7 +108,24 @@ export default function SignupPage() {
               autoComplete="new-password"
             />
           </div>
-          <button type="submit" className="btn btn-primary" disabled={loading}>
+
+          <div className="form-group" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '4px' }}>
+            <input
+              type="checkbox"
+              id="agree-terms"
+              checked={agreeTerms}
+              onChange={(e) => setAgreeTerms(e.target.checked)}
+              style={{ marginTop: '3px', accentColor: 'var(--accent)', width: '16px', height: '16px', cursor: 'pointer', flexShrink: 0 }}
+            />
+            <label htmlFor="agree-terms" style={{ fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: '1.4' }}>
+              I agree to the{' '}
+              <span className="auth-link" onClick={(e) => { e.preventDefault(); setShowTerms(true) }} style={{ cursor: 'pointer' }}>Terms of Service</span>
+              {' '}and{' '}
+              <span className="auth-link" onClick={(e) => { e.preventDefault(); setShowTerms(true) }} style={{ cursor: 'pointer' }}>Privacy Policy</span>
+            </label>
+          </div>
+
+          <button type="submit" className="btn btn-primary" disabled={loading || !agreeTerms} style={{ opacity: agreeTerms ? 1 : 0.6 }}>
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
@@ -111,6 +135,41 @@ export default function SignupPage() {
           <Link to="/login" className="auth-link">Sign in</Link>
         </p>
       </div>
+
+      {showTerms && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => setShowTerms(false)}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', maxWidth: '600px', width: '100%', maxHeight: '80vh', overflow: 'auto', padding: '32px' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', marginBottom: '20px' }}>Terms of Service & Privacy Policy</h2>
+
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.7' }}>
+              <h3 style={{ color: 'var(--text)', fontSize: '15px', margin: '16px 0 8px' }}>1. Terms of Service</h3>
+              <p>By creating an account on Solis OS, you agree to these terms. Solis OS provides business management tools including booking, scheduling, customer management, and analytics.</p>
+              <p style={{ marginTop: '8px' }}>You are responsible for maintaining the confidentiality of your account credentials. You agree not to use the service for any unlawful purposes.</p>
+
+              <h3 style={{ color: 'var(--text)', fontSize: '15px', margin: '16px 0 8px' }}>2. Data Usage</h3>
+              <p>We collect and store information you provide (name, email, business details) to operate the service. Your business data (bookings, customers, services) is stored securely and belongs to you.</p>
+
+              <h3 style={{ color: 'var(--text)', fontSize: '15px', margin: '16px 0 8px' }}>3. Privacy Policy</h3>
+              <p>We do not sell your personal information to third parties. We use industry-standard security measures to protect your data. You may request deletion of your account and data at any time.</p>
+
+              <h3 style={{ color: 'var(--text)', fontSize: '15px', margin: '16px 0 8px' }}>4. Service Availability</h3>
+              <p>We strive to maintain 99.9% uptime but do not guarantee uninterrupted service. We reserve the right to modify or discontinue features with reasonable notice.</p>
+
+              <h3 style={{ color: 'var(--text)', fontSize: '15px', margin: '16px 0 8px' }}>5. Intellectual Property</h3>
+              <p>Solis OS and its original content, features, and functionality are owned by Solis OS. Your business data remains your property.</p>
+
+              <h3 style={{ color: 'var(--text)', fontSize: '15px', margin: '16px 0 8px' }}>6. Limitation of Liability</h3>
+              <p>Solis OS shall not be liable for any indirect, incidental, or consequential damages arising from your use of the service.</p>
+
+              <p style={{ marginTop: '16px', color: 'var(--text-muted)', fontSize: '12px' }}>Last updated: May 2026. All rights reserved.</p>
+            </div>
+
+            <button className="btn btn-primary" style={{ marginTop: '24px', width: '100%' }} onClick={() => { setAgreeTerms(true); setShowTerms(false) }}>
+              I Agree
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
