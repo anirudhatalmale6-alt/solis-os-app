@@ -410,10 +410,10 @@ input, select, textarea, button { font-family: inherit; }
 .service-select-card {
   background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 20px; margin-bottom: 10px; cursor: pointer; transition: all 0.25s;
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-card); border-left: 3px solid transparent;
 }
-.service-select-card:hover { border-color: var(--border-accent); background: var(--bg-card-hover); transform: translateY(-1px); }
-.service-select-card.selected { border-color: var(--accent); background: var(--accent-glow); box-shadow: 0 0 20px rgba(59,130,246,0.1); }
+.service-select-card:hover { border-color: var(--border-accent); border-left-color: var(--accent); background: var(--bg-card-hover); transform: translateY(-1px); }
+.service-select-card.selected { border-color: var(--accent); border-left-color: var(--accent); background: var(--accent-glow); box-shadow: 0 0 20px rgba(59,130,246,0.1); }
 .service-select-card h3 { font-family: var(--font-display); font-size: 15px; font-weight: 600; margin-bottom: 4px; }
 .service-select-card .meta { font-size: 13px; color: var(--text-secondary); }
 

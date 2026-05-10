@@ -137,6 +137,9 @@ export default function BookingPublicPage() {
 
   if (!business) return null
 
+  const stepLabels = ['Service', 'Date & Time', 'Details', 'Confirm']
+  const businessInitial = business.name ? business.name.charAt(0).toUpperCase() : '?'
+
   const handleSelectService = (svc) => {
     setSelectedService(svc)
     setSelectedDate(null)
@@ -230,9 +233,35 @@ export default function BookingPublicPage() {
     <div className="public-booking">
       <div className="public-booking-card">
         <div className="public-booking-header">
+          <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: '24px', fontWeight: 700, color: '#fff', fontFamily: 'var(--font-display)' }}>
+            {businessInitial}
+          </div>
           <h1>Book with {business.name}</h1>
           <p>{business.industry ? business.industry.charAt(0).toUpperCase() + business.industry.slice(1) : ''}</p>
+          {business.address && (
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>{business.address}{business.city ? `, ${business.city}` : ''}</p>
+          )}
         </div>
+
+        {!booked && (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginBottom: '24px' }}>
+            {stepLabels.map((label, i) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{
+                  width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '12px', fontWeight: 600,
+                  background: step > i + 1 ? 'var(--accent)' : step === i + 1 ? 'var(--accent)' : 'var(--bg-card)',
+                  color: step >= i + 1 ? '#fff' : 'var(--text-muted)',
+                  border: step >= i + 1 ? 'none' : '1px solid var(--border)',
+                  transition: 'all 0.2s'
+                }}>
+                  {step > i + 1 ? '✓' : i + 1}
+                </div>
+                {i < 3 && <div style={{ width: '20px', height: '2px', background: step > i + 1 ? 'var(--accent)' : 'var(--border)', transition: 'all 0.2s' }} />}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Step 1: Select Service */}
         {step === 1 && (
@@ -404,6 +433,12 @@ export default function BookingPublicPage() {
             </button>
           </div>
         )}
+      </div>
+
+      <div style={{ textAlign: 'center', marginTop: '32px', paddingBottom: '20px' }}>
+        <a href="https://solis-os.com" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--text-muted)', textDecoration: 'none', opacity: 0.7 }}>
+          Powered by Solis OS
+        </a>
       </div>
     </div>
   )
