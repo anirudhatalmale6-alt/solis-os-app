@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Wrench } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
 
@@ -93,7 +94,7 @@ export default function ServicesPage() {
 
         {services.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">🛠</div>
+            <div className="empty-state-icon"><Wrench size={48} strokeWidth={1.5} /></div>
             <div className="empty-state-title">No services yet</div>
             <div className="empty-state-text">
               Add your first service to start managing your business.

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Users } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
 
@@ -97,7 +98,7 @@ export default function StaffPage() {
 
         {staff.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-state-icon">👥</div>
+            <div className="empty-state-icon"><Users size={48} strokeWidth={1.5} /></div>
             <div className="empty-state-title">No team members yet</div>
             <div className="empty-state-text">
               Add your first staff member to start building your team.

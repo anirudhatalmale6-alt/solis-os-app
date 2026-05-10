@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { CalendarCheck, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
 
@@ -67,12 +68,12 @@ export default function BookingsPage() {
 
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', marginBottom: '20px' }}>
         <div className="stat-card">
-          <div className="stat-card-icon">📅</div>
+          <div className="stat-card-icon"><CalendarCheck size={22} /></div>
           <div className="stat-card-label">Today's Bookings</div>
           <div className="stat-card-value">{totalCount}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon">✅</div>
+          <div className="stat-card-icon"><CheckCircle2 size={22} /></div>
           <div className="stat-card-label">Confirmed</div>
           <div className="stat-card-value">{confirmedCount}</div>
         </div>
@@ -80,18 +81,18 @@ export default function BookingsPage() {
 
       <div className="date-nav">
         <button className="date-nav-btn" onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}>
-          &lsaquo;
+          <ChevronLeft size={18} />
         </button>
         <div className="date-nav-label">{formatDateLabel(selectedDate)}</div>
         <button className="date-nav-btn" onClick={() => setSelectedDate(shiftDate(selectedDate, 1))}>
-          &rsaquo;
+          <ChevronRight size={18} />
         </button>
       </div>
 
       {bookings.length === 0 ? (
         <div className="card">
           <div className="empty-state">
-            <div className="empty-state-icon">📅</div>
+            <div className="empty-state-icon"><CalendarCheck size={48} strokeWidth={1.5} /></div>
             <div className="empty-state-title">No bookings for this date</div>
             <div className="empty-state-text">
               When customers book appointments, they'll appear here.

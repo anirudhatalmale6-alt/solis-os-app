@@ -1,17 +1,46 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import {
+  LayoutDashboard,
+  CalendarCheck,
+  Clock,
+  UserRound,
+  MessageSquare,
+  Wrench,
+  Users,
+  Settings,
+  Menu,
+  X,
+  LogOut,
+} from 'lucide-react'
 
-const NAV_ITEMS = [
-  { to: '/dashboard', icon: '📊', label: 'Dashboard' },
-  { to: '/bookings', icon: '📅', label: 'Bookings' },
-  { to: '/schedule', icon: '🕐', label: 'Schedule' },
-  { to: '/customers', icon: '👤', label: 'Customers', disabled: true, badge: 'Coming Soon' },
-  { to: '/messages', icon: '💬', label: 'Messages', disabled: true, badge: 'Coming Soon' },
-  { to: '/services', icon: '🛠', label: 'Services' },
-  { to: '/staff', icon: '👥', label: 'Staff' },
-  { to: '/settings', icon: '⚙️', label: 'Settings' },
+const NAV_SECTIONS = [
+  {
+    label: 'Main',
+    items: [
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/bookings', icon: CalendarCheck, label: 'Bookings' },
+      { to: '/schedule', icon: Clock, label: 'Schedule' },
+    ],
+  },
+  {
+    label: 'Management',
+    items: [
+      { to: '/services', icon: Wrench, label: 'Services' },
+      { to: '/staff', icon: Users, label: 'Staff' },
+      { to: '/customers', icon: UserRound, label: 'Customers', disabled: true, badge: 'Coming Soon' },
+    ],
+  },
+  {
+    label: 'Communication',
+    items: [
+      { to: '/messages', icon: MessageSquare, label: 'Messages', disabled: true, badge: 'Coming Soon' },
+    ],
+  },
 ]
+
+const SETTINGS_ITEM = { to: '/settings', icon: Settings, label: 'Settings' }
 
 export default function AppShell() {
   const { user, signOut } = useAuth()
@@ -29,6 +58,30 @@ export default function AppShell() {
 
   const closeSidebar = () => setSidebarOpen(false)
 
+  const renderNavItem = (item) => {
+    const IconComponent = item.icon
+    if (item.disabled) {
+      return (
+        <div key={item.to} className="nav-link disabled">
+          <span className="nav-link-icon"><IconComponent size={20} /></span>
+          {item.label}
+          {item.badge && <span className="nav-link-badge">{item.badge}</span>}
+        </div>
+      )
+    }
+    return (
+      <NavLink
+        key={item.to}
+        to={item.to}
+        className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+        onClick={closeSidebar}
+      >
+        <span className="nav-link-icon"><IconComponent size={20} /></span>
+        {item.label}
+      </NavLink>
+    )
+  }
+
   return (
     <div className="app-shell">
       {/* Mobile header */}
@@ -41,7 +94,7 @@ export default function AppShell() {
           onClick={() => setSidebarOpen(!sidebarOpen)}
           aria-label="Toggle menu"
         >
-          {sidebarOpen ? '✕' : '☰'}
+          {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
@@ -54,7 +107,7 @@ export default function AppShell() {
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <button className="sidebar-close" onClick={closeSidebar} aria-label="Close menu">
-          ✕
+          <X size={24} />
         </button>
 
         <div className="sidebar-logo">
@@ -62,25 +115,16 @@ export default function AppShell() {
         </div>
 
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map(item => (
-            item.disabled ? (
-              <div key={item.to} className="nav-link disabled">
-                <span className="nav-link-icon">{item.icon}</span>
-                {item.label}
-                {item.badge && <span className="nav-link-badge">{item.badge}</span>}
-              </div>
-            ) : (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                onClick={closeSidebar}
-              >
-                <span className="nav-link-icon">{item.icon}</span>
-                {item.label}
-              </NavLink>
-            )
+          {NAV_SECTIONS.map((section, idx) => (
+            <div key={section.label} className="nav-section">
+              {idx > 0 && <div className="nav-divider" />}
+              <div className="nav-section-label">{section.label}</div>
+              {section.items.map(renderNavItem)}
+            </div>
           ))}
+
+          <div className="nav-divider" />
+          {renderNavItem(SETTINGS_ITEM)}
         </nav>
 
         <div className="sidebar-bottom">
@@ -90,6 +134,7 @@ export default function AppShell() {
               <div className="sidebar-user-name">{user?.full_name || 'User'}</div>
               <div className="sidebar-user-email">{user?.email || ''}</div>
             </div>
+            <LogOut size={18} className="sidebar-signout-icon" />
           </div>
         </div>
       </aside>
