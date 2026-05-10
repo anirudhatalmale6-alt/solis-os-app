@@ -13,5 +13,19 @@ for (const key of Object.keys(localStore)) {
   }
 }
 
-export const dataStore = isSupabaseConfigured() ? supabaseStore : wrappedLocalStore
-export const useSupabase = isSupabaseConfigured()
+const supabaseConfigured = isSupabaseConfigured()
+
+const hybridStore = supabaseConfigured ? {
+  signUp: supabaseStore.signUp,
+  signIn: supabaseStore.signIn,
+  signOut: supabaseStore.signOut,
+  getSession: supabaseStore.getSession,
+  ...Object.fromEntries(
+    Object.keys(wrappedLocalStore)
+      .filter(k => !['signUp', 'signIn', 'signOut', 'getSession'].includes(k))
+      .map(k => [k, wrappedLocalStore[k]])
+  ),
+} : wrappedLocalStore
+
+export const dataStore = hybridStore
+export const useSupabase = supabaseConfigured

@@ -44,6 +44,7 @@ export default function SignupPage() {
       if (result.error) {
         setError(result.error.message)
       } else {
+        sessionStorage.setItem('solis_verify_email', email)
         navigate('/verify-email')
       }
     } catch (err) {

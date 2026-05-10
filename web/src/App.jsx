@@ -14,6 +14,8 @@ import SchedulePage from './pages/SchedulePage'
 import BookingsPage from './pages/BookingsPage'
 import BookingPublicPage from './pages/BookingPublicPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -90,10 +92,12 @@ function AppRoutes() {
       {/* Public routes */}
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+      <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/book/:businessId" element={<BookingPublicPage />} />
 
-      {/* Verification & Setup (protected but no shell) */}
-      <Route path="/verify-email" element={<ProtectedRoute><VerifyEmailPage /></ProtectedRoute>} />
+      {/* Verification (accessible without full session for Supabase OTP) */}
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/setup" element={<ProtectedRoute><SetupPage /></ProtectedRoute>} />
 
       {/* Protected routes with AppShell */}

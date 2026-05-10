@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 export default function VerifyEmailPage() {
   const { user } = useAuth()
@@ -14,8 +15,10 @@ export default function VerifyEmailPage() {
   const inputRefs = useRef([])
 
   const storedCode = useRef('')
+  const isReal = isSupabaseConfigured()
 
   useEffect(() => {
+    if (isReal) return
     const digits = Math.floor(100000 + Math.random() * 900000).toString()
     storedCode.current = digits
     const data = JSON.parse(localStorage.getItem('solis_os_data') || '{}')
@@ -23,7 +26,7 @@ export default function VerifyEmailPage() {
       data._verification = { userId: user.id, code: digits, created: Date.now() }
       localStorage.setItem('solis_os_data', JSON.stringify(data))
     }
-  }, [user])
+  }, [user, isReal])
 
   useEffect(() => {
     if (countdown > 0) {
@@ -34,7 +37,17 @@ export default function VerifyEmailPage() {
 
   useEffect(() => {
     inputRefs.current[0]?.focus()
-  }, [])
+    if (!isReal) {
+      const timer = setTimeout(() => {
+        if (storedCode.current) {
+          const digits = storedCode.current.split('')
+          setCode(digits)
+          inputRefs.current[5]?.focus()
+        }
+      }, 2500)
+      return () => clearTimeout(timer)
+    }
+  }, [isReal])
 
   const handleInput = (index, value) => {
     if (!/^\d*$/.test(value)) return
@@ -73,8 +86,26 @@ export default function VerifyEmailPage() {
     }
 
     setVerifying(true)
-    await new Promise(r => setTimeout(r, 1000))
 
+    if (isReal && supabase) {
+      const verifyEmail = user?.email || sessionStorage.getItem('solis_verify_email')
+      const { error: otpError } = await supabase.auth.verifyOtp({
+        email: verifyEmail,
+        token: entered,
+        type: 'signup',
+      })
+      if (otpError) {
+        setError(otpError.message)
+        setVerifying(false)
+        return
+      }
+      setVerified(true)
+      setVerifying(false)
+      setTimeout(() => { window.location.href = '/setup' }, 1500)
+      return
+    }
+
+    await new Promise(r => setTimeout(r, 1000))
     const data = JSON.parse(localStorage.getItem('solis_os_data') || '{}')
     const v = data._verification
     if (v && v.code === entered && v.userId === user?.id) {
@@ -85,25 +116,27 @@ export default function VerifyEmailPage() {
       }
       delete data._verification
       localStorage.setItem('solis_os_data', JSON.stringify(data))
-
       setVerified(true)
       setVerifying(false)
-      setTimeout(() => {
-        window.location.href = '/setup'
-      }, 1500)
+      setTimeout(() => { window.location.href = '/setup' }, 1500)
     } else {
       setError('Invalid code. Please try again.')
       setVerifying(false)
     }
   }
 
-  const handleResend = () => {
-    const digits = Math.floor(100000 + Math.random() * 900000).toString()
-    storedCode.current = digits
-    const data = JSON.parse(localStorage.getItem('solis_os_data') || '{}')
-    if (user) {
-      data._verification = { userId: user.id, code: digits, created: Date.now() }
-      localStorage.setItem('solis_os_data', JSON.stringify(data))
+  const handleResend = async () => {
+    if (isReal && supabase) {
+      const resendEmail = user?.email || sessionStorage.getItem('solis_verify_email')
+      if (resendEmail) await supabase.auth.resend({ type: 'signup', email: resendEmail })
+    } else {
+      const digits = Math.floor(100000 + Math.random() * 900000).toString()
+      storedCode.current = digits
+      const data = JSON.parse(localStorage.getItem('solis_os_data') || '{}')
+      if (user) {
+        data._verification = { userId: user.id, code: digits, created: Date.now() }
+        localStorage.setItem('solis_os_data', JSON.stringify(data))
+      }
     }
     setResent(true)
     setCountdown(30)
@@ -113,8 +146,9 @@ export default function VerifyEmailPage() {
     setTimeout(() => setResent(false), 3000)
   }
 
-  const maskedEmail = user?.email
-    ? user.email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(Math.min(b.length, 5)) + c)
+  const rawEmail = user?.email || sessionStorage.getItem('solis_verify_email') || ''
+  const maskedEmail = rawEmail
+    ? rawEmail.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(Math.min(b.length, 5)) + c)
     : ''
 
   if (verified) {
@@ -172,23 +206,6 @@ export default function VerifyEmailPage() {
               }}
             />
           ))}
-        </div>
-
-        <div style={{
-          background: 'rgba(99, 102, 241, 0.08)',
-          border: '1px solid rgba(99, 102, 241, 0.2)',
-          borderRadius: 'var(--radius)',
-          padding: '12px 16px',
-          marginBottom: '16px',
-          fontSize: '13px',
-          color: 'var(--text-secondary)',
-          lineHeight: '1.5',
-        }}>
-          Preview mode — your code is: <strong style={{ color: 'var(--accent)', letterSpacing: '2px' }}>{storedCode.current}</strong>
-          <br />
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            Real email verification activates when the backend is connected.
-          </span>
         </div>
 
         <button
