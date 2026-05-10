@@ -23,15 +23,26 @@ import BookingLinkPage from './pages/BookingLinkPage'
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
   const [business, setBusiness] = useState(undefined)
+  const [retries, setRetries] = useState(0)
 
   useEffect(() => {
     if (!user) return
+    let cancelled = false
     const fetchBusiness = async () => {
-      const biz = await dataStore.getBusiness(user.id)
-      setBusiness(biz ?? null)
+      try {
+        const biz = await dataStore.getBusiness(user.id)
+        if (!cancelled) setBusiness(biz ?? null)
+      } catch {
+        if (!cancelled && retries < 3) {
+          setTimeout(() => setRetries(r => r + 1), 1500)
+        } else if (!cancelled) {
+          setBusiness(null)
+        }
+      }
     }
     fetchBusiness()
-  }, [user])
+    return () => { cancelled = true }
+  }, [user, retries])
 
   if (loading) {
     return (

@@ -50,22 +50,19 @@ export const supabaseStore = {
   },
 
   async getBusiness(userId) {
-    const { data } = await supabase.from('businesses').select('*').eq('owner_id', userId).single()
+    const { data, error } = await supabase.from('businesses').select('*').eq('owner_id', userId).maybeSingle()
+    if (error) throw new Error(error.message)
     return data || null
   },
 
   async getBusinessById(id) {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
     if (isUUID) {
-      const { data } = await supabase.from('businesses').select('*').eq('id', id).single()
+      const { data } = await supabase.from('businesses').select('*').eq('id', id).maybeSingle()
       return data || null
     }
-    try {
-      const { data } = await supabase.from('businesses').select('*').eq('slug', id).single()
-      return data || null
-    } catch {
-      return null
-    }
+    const { data } = await supabase.from('businesses').select('*').eq('slug', id).maybeSingle()
+    return data || null
   },
 
   async updateBusiness(id, updates) {
@@ -143,7 +140,7 @@ export const supabaseStore = {
   async setSchedule(businessId, schedule) {
     const { monday, tuesday, wednesday, thursday, friday, saturday, sunday } = schedule
     const payload = { business_id: businessId, monday, tuesday, wednesday, thursday, friday, saturday, sunday }
-    const { data: existing } = await supabase.from('schedules').select('id').eq('business_id', businessId).single()
+    const { data: existing } = await supabase.from('schedules').select('id').eq('business_id', businessId).maybeSingle()
     if (existing) {
       await supabase.from('schedules').update(payload).eq('business_id', businessId)
     } else {
@@ -152,7 +149,7 @@ export const supabaseStore = {
   },
 
   async getSchedule(businessId) {
-    const { data } = await supabase.from('schedules').select('*').eq('business_id', businessId).single()
+    const { data } = await supabase.from('schedules').select('*').eq('business_id', businessId).maybeSingle()
     if (data) return data
     return {
       business_id: businessId,

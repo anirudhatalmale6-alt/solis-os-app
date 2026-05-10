@@ -169,30 +169,24 @@ export default function BookingPublicPage() {
     setBookingLoading(true)
     setBookingError('')
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://64fd1222503ab8ba-167-235-196-123.serveousercontent.com'
-      const resp = await fetch(`${API_URL}/api/public-booking`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          business_id: business.id,
-          service_id: selectedService.id,
-          customer_name: customerName,
-          customer_phone: customerPhone,
-          customer_email: customerEmail || undefined,
-          date: selectedDate,
-          time: selectedTime,
-          duration: selectedService.duration || 30,
-          notes: '',
-        }),
+      const result = await dataStore.addBooking({
+        business_id: business.id,
+        service_id: selectedService.id,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        date: selectedDate,
+        time: selectedTime,
+        duration: selectedService.duration || 30,
+        notes: '',
+        status: 'confirmed',
       })
-      const result = await resp.json()
-      if (!resp.ok || result.error) {
-        setBookingError(result.error || 'Something went wrong. Please try again.')
+      if (result.error) {
+        setBookingError(result.error.message || 'Something went wrong. Please try again.')
         return
       }
       setBooked(true)
     } catch (err) {
-      setBookingError('Unable to connect. Please check your internet and try again.')
+      setBookingError('Something went wrong. Please try again.')
     } finally {
       setBookingLoading(false)
     }
