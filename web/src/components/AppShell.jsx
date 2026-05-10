@@ -29,13 +29,13 @@ const NAV_SECTIONS = [
     items: [
       { to: '/services', icon: Wrench, label: 'Services' },
       { to: '/staff', icon: Users, label: 'Staff' },
-      { to: '/customers', icon: UserRound, label: 'Customers', disabled: true, badge: 'Coming Soon' },
+      { to: '/customers', icon: UserRound, label: 'Customers' },
     ],
   },
   {
     label: 'Communication',
     items: [
-      { to: '/messages', icon: MessageSquare, label: 'Messages', disabled: true, badge: 'Coming Soon' },
+      { to: '/messages', icon: MessageSquare, label: 'Messages' },
     ],
   },
 ]

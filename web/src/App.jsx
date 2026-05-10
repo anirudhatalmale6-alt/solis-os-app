@@ -16,6 +16,8 @@ import BookingPublicPage from './pages/BookingPublicPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import CustomersPage from './pages/CustomersPage'
+import MessagesPage from './pages/MessagesPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -108,6 +110,8 @@ function AppRoutes() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/bookings" element={<BookingsPage />} />
+        <Route path="/customers" element={<CustomersPage />} />
+        <Route path="/messages" element={<MessagesPage />} />
       </Route>
 
       {/* Default redirect */}

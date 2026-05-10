@@ -152,6 +152,15 @@ export const store = {
     return data.customers.filter(c => c.business_id === businessId)
   },
 
+  updateCustomer(id, updates) {
+    const data = load()
+    const idx = data.customers.findIndex(c => c.id === id)
+    if (idx === -1) return { error: { message: 'Customer not found' } }
+    data.customers[idx] = { ...data.customers[idx], ...updates }
+    save(data)
+    return { data: data.customers[idx], error: null }
+  },
+
   deleteCustomer(id) {
     const data = load()
     data.customers = data.customers.filter(c => c.id !== id)

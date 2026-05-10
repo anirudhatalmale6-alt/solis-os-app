@@ -109,6 +109,12 @@ export const supabaseStore = {
     return data || []
   },
 
+  async updateCustomer(id, updates) {
+    const { data, error } = await supabase.from('customers').update(updates).eq('id', id).select().single()
+    if (error) return { error: { message: error.message } }
+    return { data, error: null }
+  },
+
   async deleteCustomer(id) {
     await supabase.from('customers').delete().eq('id', id)
     return { error: null }

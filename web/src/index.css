@@ -448,6 +448,9 @@ input, select, textarea, button { font-family: inherit; }
 .booking-success p { color: var(--text-secondary); font-size: 14px; }
 
 /* ─── Responsive ─── */
+/* ─── Textarea ─── */
+textarea.form-input { min-height: 80px; line-height: 1.6; }
+
 @media (max-width: 768px) {
   .mobile-header { display: flex; }
   .sidebar { transform: translateX(-100%); width: 280px; }
@@ -455,7 +458,7 @@ input, select, textarea, button { font-family: inherit; }
   .sidebar-close { display: block; }
   .sidebar-overlay.open { display: block; }
   .main-content { margin-left: 0; padding: 80px 16px 32px; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px; }
   .quick-actions { grid-template-columns: 1fr 1fr; }
   .auth-card, .setup-card { padding: 28px 20px; }
   .time-slots { grid-template-columns: repeat(3, 1fr); }
@@ -464,6 +467,7 @@ input, select, textarea, button { font-family: inherit; }
   .booking-card-actions { width: 100%; }
   .page-title { font-size: 24px; }
   .stat-card-value { font-size: 26px; }
+  .dashboard-grid-2col { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
