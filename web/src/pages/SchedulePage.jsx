@@ -18,7 +18,6 @@ export default function SchedulePage() {
   const [business, setBusiness] = useState(null)
   const [schedule, setSchedule] = useState(null)
   const [saved, setSaved] = useState(false)
-  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -53,24 +52,6 @@ export default function SchedulePage() {
     await dataStore.setSchedule(business.id, schedule)
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
-  }
-
-  const bookingUrl = business ? `${window.location.origin}/book/${business.slug || business.id}` : ''
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(bookingUrl).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }).catch(() => {
-      // Fallback for non-HTTPS
-      const input = document.querySelector('.booking-link-box input')
-      if (input) {
-        input.select()
-        document.execCommand('copy')
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      }
-    })
   }
 
   if (!schedule) return null
@@ -123,19 +104,6 @@ export default function SchedulePage() {
               Schedule saved successfully!
             </div>
           )}
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="card-title">Public Booking Link</div>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-          Share this link with customers so they can book appointments online.
-        </p>
-        <div className="booking-link-box">
-          <input type="text" value={bookingUrl} readOnly />
-          <button className="btn btn-primary btn-sm" onClick={handleCopyLink}>
-            {copied ? 'Copied!' : 'Copy Link'}
-          </button>
         </div>
       </div>
     </>

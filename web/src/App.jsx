@@ -18,6 +18,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import CustomersPage from './pages/CustomersPage'
 import MessagesPage from './pages/MessagesPage'
+import BookingLinkPage from './pages/BookingLinkPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -112,6 +113,7 @@ function AppRoutes() {
         <Route path="/bookings" element={<BookingsPage />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/messages" element={<MessagesPage />} />
+        <Route path="/booking-link" element={<BookingLinkPage />} />
       </Route>
 
       {/* Default redirect */}

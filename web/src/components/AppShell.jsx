@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   LogOut,
+  Link2,
 } from 'lucide-react'
 
 const industryServiceIcon = {
@@ -64,6 +65,12 @@ export default function AppShell() {
       label: 'Communication',
       items: [
         { to: '/messages', icon: MessageSquare, label: 'Messages' },
+      ],
+    },
+    {
+      label: 'Share',
+      items: [
+        { to: '/booking-link', icon: Link2, label: 'Booking Link' },
       ],
     },
   ]
