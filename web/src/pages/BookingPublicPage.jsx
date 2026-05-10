@@ -75,6 +75,8 @@ export default function BookingPublicPage() {
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [booked, setBooked] = useState(false)
+  const [bookingError, setBookingError] = useState('')
+  const [bookingLoading, setBookingLoading] = useState(false)
 
   // Async-loaded day data
   const [dayBookings, setDayBookings] = useState([])
@@ -164,19 +166,36 @@ export default function BookingPublicPage() {
   }
 
   const handleConfirm = async () => {
-    await dataStore.addBooking({
-      business_id: business.id,
-      service_id: selectedService.id,
-      service_name: selectedService.name,
-      customer_name: customerName,
-      customer_phone: customerPhone,
-      customer_email: customerEmail,
-      date: selectedDate,
-      time: selectedTime,
-      duration: selectedService.duration || 30,
-      notes: '',
-    })
-    setBooked(true)
+    setBookingLoading(true)
+    setBookingError('')
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://64fd1222503ab8ba-167-235-196-123.serveousercontent.com'
+      const resp = await fetch(`${API_URL}/api/public-booking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_id: business.id,
+          service_id: selectedService.id,
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          customer_email: customerEmail || undefined,
+          date: selectedDate,
+          time: selectedTime,
+          duration: selectedService.duration || 30,
+          notes: '',
+        }),
+      })
+      const result = await resp.json()
+      if (!resp.ok || result.error) {
+        setBookingError(result.error || 'Something went wrong. Please try again.')
+        return
+      }
+      setBooked(true)
+    } catch (err) {
+      setBookingError('Unable to connect. Please check your internet and try again.')
+    } finally {
+      setBookingLoading(false)
+    }
   }
 
   // Check if a date is available (business is open that day)
@@ -428,8 +447,13 @@ export default function BookingPublicPage() {
               {customerName} · {customerPhone}
               {customerEmail ? ` · ${customerEmail}` : ''}
             </div>
-            <button className="btn btn-primary" style={{ marginTop: '20px' }} onClick={handleConfirm}>
-              Confirm Booking
+            {bookingError && (
+              <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', fontSize: '13px' }}>
+                {bookingError}
+              </div>
+            )}
+            <button className="btn btn-primary" style={{ marginTop: '20px', opacity: bookingLoading ? 0.7 : 1 }} onClick={handleConfirm} disabled={bookingLoading}>
+              {bookingLoading ? 'Booking...' : 'Confirm Booking'}
             </button>
           </div>
         )}
