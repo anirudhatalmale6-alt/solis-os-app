@@ -8,6 +8,9 @@ export const supabaseStore = {
       options: { data: { full_name: fullName } }
     })
     if (error) return { error: { message: error.message } }
+    if (data.session) {
+      return { data: { user: { id: data.user.id, email: data.user.email, full_name: fullName } }, error: null }
+    }
     return { data: { user: { id: data.user.id, email: data.user.email, full_name: fullName } }, error: null }
   },
 
