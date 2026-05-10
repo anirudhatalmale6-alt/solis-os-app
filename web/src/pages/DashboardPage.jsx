@@ -82,6 +82,14 @@ function todayStr() {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
 }
 
+function formatTime12(time24) {
+  if (!time24) return ''
+  const [h, m] = time24.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 || 12
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
 export default function DashboardPage() {
   const { user } = useAuth()
   const [business, setBusiness] = useState(null)
@@ -112,6 +120,7 @@ export default function DashboardPage() {
   }, [user])
 
   const firstName = user?.full_name?.split(' ')[0] || 'there'
+  const svcName = (b) => b.service_name || (services.find(s => s.id === b.service_id)?.name) || 'Service'
   const insights = getInsights(business, services, staff, todayBookings)
 
   const recentActivity = allBookings
@@ -192,11 +201,11 @@ export default function DashboardPage() {
                   padding: '12px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border)'
                 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '14px', color: 'var(--accent-bright)', minWidth: '50px' }}>
-                    {b.time}
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '14px', color: 'var(--accent-bright)', minWidth: '60px' }}>
+                    {formatTime12(b.time)}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '13px', fontWeight: 500 }}>{b.service_name}</div>
+                    <div style={{ fontSize: '13px', fontWeight: 500 }}>{svcName(b)}</div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{b.customer_name}</div>
                   </div>
                   {statusIcon(b.status)}
@@ -237,7 +246,7 @@ export default function DashboardPage() {
                       <span style={{ color: 'var(--text-muted)' }}>
                         {b.status === 'confirmed' ? ' booked ' : b.status === 'completed' ? ' completed ' : ' cancelled '}
                       </span>
-                      <span style={{ fontWeight: 500 }}>{b.service_name}</span>
+                      <span style={{ fontWeight: 500 }}>{svcName(b)}</span>
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{b.date}</div>
                   </div>

@@ -19,18 +19,33 @@ function shiftDate(dateStr, days) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
 }
 
+function formatTime12(time24) {
+  if (!time24) return ''
+  const [h, m] = time24.split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 || 12
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
 export default function BookingsPage() {
   const { user } = useAuth()
   const [business, setBusiness] = useState(null)
   const [selectedDate, setSelectedDate] = useState(todayStr())
   const [bookings, setBookings] = useState([])
+  const [serviceMap, setServiceMap] = useState({})
 
   const loadData = async () => {
     if (!user) return
     const biz = await dataStore.getBusiness(user.id)
     if (biz) {
       setBusiness(biz)
-      const dayBookings = await dataStore.getBookingsByDate(biz.id, selectedDate)
+      const [dayBookings, services] = await Promise.all([
+        dataStore.getBookingsByDate(biz.id, selectedDate),
+        dataStore.getServices(biz.id),
+      ])
+      const sMap = {}
+      for (const s of services) sMap[s.id] = s.name
+      setServiceMap(sMap)
       setBookings(dayBookings.sort((a, b) => (a.time || '').localeCompare(b.time || '')))
     }
   }
@@ -102,9 +117,9 @@ export default function BookingsPage() {
       ) : (
         bookings.map(booking => (
           <div key={booking.id} className="booking-card">
-            <div className="booking-card-time">{booking.time}</div>
+            <div className="booking-card-time">{formatTime12(booking.time)}</div>
             <div className="booking-card-info">
-              <div className="booking-card-service">{booking.service_name}</div>
+              <div className="booking-card-service">{booking.service_name || serviceMap[booking.service_id] || 'Service'}</div>
               <div className="booking-card-customer">
                 {booking.customer_name}
                 {booking.customer_phone ? ` · ${booking.customer_phone}` : ''}
