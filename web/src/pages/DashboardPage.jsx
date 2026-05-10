@@ -19,7 +19,17 @@ import {
   ArrowRight,
   CheckCircle2,
   XCircle,
+  Scissors,
+  Stethoscope,
+  Briefcase,
 } from 'lucide-react'
+
+const industryServiceIcon = {
+  salon: Scissors,
+  clinic: Stethoscope,
+  garage: Wrench,
+  other: Briefcase,
+}
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
 
@@ -124,7 +134,7 @@ export default function DashboardPage() {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-card-icon"><Wrench size={22} /></div>
+          <div className="stat-card-icon">{(() => { const I = industryServiceIcon[business?.industry] || Briefcase; return <I size={22} /> })()}</div>
           <div className="stat-card-label">Services</div>
           <div className="stat-card-value">{services.length}</div>
         </div>

@@ -55,7 +55,7 @@ export default function SchedulePage() {
     setTimeout(() => setSaved(false), 3000)
   }
 
-  const bookingUrl = business ? `${window.location.origin}/book/${business.id}` : ''
+  const bookingUrl = business ? `${window.location.origin}/book/${business.slug || business.id}` : ''
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(bookingUrl).then(() => {

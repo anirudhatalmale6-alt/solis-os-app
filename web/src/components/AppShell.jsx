@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { dataStore } from '../lib/dataStore'
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -8,6 +9,9 @@ import {
   UserRound,
   MessageSquare,
   Wrench,
+  Scissors,
+  Stethoscope,
+  Briefcase,
   Users,
   Settings,
   Menu,
@@ -15,30 +19,12 @@ import {
   LogOut,
 } from 'lucide-react'
 
-const NAV_SECTIONS = [
-  {
-    label: 'Main',
-    items: [
-      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/bookings', icon: CalendarCheck, label: 'Bookings' },
-      { to: '/schedule', icon: Clock, label: 'Schedule' },
-    ],
-  },
-  {
-    label: 'Management',
-    items: [
-      { to: '/services', icon: Wrench, label: 'Services' },
-      { to: '/staff', icon: Users, label: 'Staff' },
-      { to: '/customers', icon: UserRound, label: 'Customers' },
-    ],
-  },
-  {
-    label: 'Communication',
-    items: [
-      { to: '/messages', icon: MessageSquare, label: 'Messages' },
-    ],
-  },
-]
+const industryServiceIcon = {
+  salon: Scissors,
+  clinic: Stethoscope,
+  garage: Wrench,
+  other: Briefcase,
+}
 
 const SETTINGS_ITEM = { to: '/settings', icon: Settings, label: 'Settings' }
 
@@ -46,6 +32,41 @@ export default function AppShell() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [industry, setIndustry] = useState('other')
+
+  useEffect(() => {
+    if (!user) return
+    dataStore.getBusiness(user.id).then(biz => {
+      if (biz?.industry) setIndustry(biz.industry)
+    })
+  }, [user])
+
+  const ServiceIcon = industryServiceIcon[industry] || Briefcase
+
+  const NAV_SECTIONS = [
+    {
+      label: 'Main',
+      items: [
+        { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { to: '/bookings', icon: CalendarCheck, label: 'Bookings' },
+        { to: '/schedule', icon: Clock, label: 'Schedule' },
+      ],
+    },
+    {
+      label: 'Management',
+      items: [
+        { to: '/services', icon: ServiceIcon, label: 'Services' },
+        { to: '/staff', icon: Users, label: 'Staff' },
+        { to: '/customers', icon: UserRound, label: 'Customers' },
+      ],
+    },
+    {
+      label: 'Communication',
+      items: [
+        { to: '/messages', icon: MessageSquare, label: 'Messages' },
+      ],
+    },
+  ]
 
   const initials = user?.full_name
     ? user.full_name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
@@ -60,15 +81,6 @@ export default function AppShell() {
 
   const renderNavItem = (item) => {
     const IconComponent = item.icon
-    if (item.disabled) {
-      return (
-        <div key={item.to} className="nav-link disabled">
-          <span className="nav-link-icon"><IconComponent size={20} /></span>
-          {item.label}
-          {item.badge && <span className="nav-link-badge">{item.badge}</span>}
-        </div>
-      )
-    }
     return (
       <NavLink
         key={item.to}

@@ -90,9 +90,9 @@ export default function BookingPublicPage() {
         return
       }
       setBusiness(biz)
-      const allServices = await dataStore.getServices(businessId)
+      const allServices = await dataStore.getServices(biz.id)
       setServices(allServices.filter(s => s.is_active !== false))
-      setSchedule(await dataStore.getSchedule(businessId))
+      setSchedule(await dataStore.getSchedule(biz.id))
     }
     loadInitial()
   }, [businessId])
@@ -110,7 +110,7 @@ export default function BookingPublicPage() {
       const daySchedule = schedule[dayKey]
       if (daySchedule && daySchedule.enabled) {
         const slots = generateTimeSlots(daySchedule.open, daySchedule.close, selectedService.duration || 30)
-        const bookings = await dataStore.getBookingsByDate(businessId, selectedDate)
+        const bookings = await dataStore.getBookingsByDate(business.id, selectedDate)
         setTimeSlots(slots)
         setDayBookings(bookings)
       } else {
@@ -119,7 +119,7 @@ export default function BookingPublicPage() {
       }
     }
     loadDayData()
-  }, [selectedDate, selectedService, schedule, businessId])
+  }, [selectedDate, selectedService, schedule, business])
 
   if (notFound) {
     return (
@@ -162,7 +162,7 @@ export default function BookingPublicPage() {
 
   const handleConfirm = async () => {
     await dataStore.addBooking({
-      business_id: businessId,
+      business_id: business.id,
       service_id: selectedService.id,
       service_name: selectedService.name,
       customer_name: customerName,

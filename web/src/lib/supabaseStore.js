@@ -34,7 +34,15 @@ export const supabaseStore = {
 
   async createBusiness(biz) {
     const { data, error } = await supabase.from('businesses').insert(biz).select().single()
-    if (error) return { error: { message: error.message } }
+    if (error) {
+      if (error.message && error.message.includes('slug')) {
+        const { slug, ...bizWithoutSlug } = biz
+        const { data: d2, error: e2 } = await supabase.from('businesses').insert(bizWithoutSlug).select().single()
+        if (e2) return { error: { message: e2.message } }
+        return { data: d2, error: null }
+      }
+      return { error: { message: error.message } }
+    }
     return { data, error: null }
   },
 
@@ -44,8 +52,17 @@ export const supabaseStore = {
   },
 
   async getBusinessById(id) {
-    const { data } = await supabase.from('businesses').select('*').eq('id', id).single()
-    return data || null
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    if (isUUID) {
+      const { data } = await supabase.from('businesses').select('*').eq('id', id).single()
+      return data || null
+    }
+    try {
+      const { data } = await supabase.from('businesses').select('*').eq('slug', id).single()
+      return data || null
+    } catch {
+      return null
+    }
   },
 
   async updateBusiness(id, updates) {
