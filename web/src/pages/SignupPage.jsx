@@ -11,6 +11,7 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
 
@@ -43,6 +44,8 @@ export default function SignupPage() {
       const result = await signUp(email, password, fullName)
       if (result.error) {
         setError(result.error.message)
+      } else if (result.confirmEmail) {
+        setEmailSent(true)
       } else {
         navigate('/setup')
       }
@@ -50,6 +53,29 @@ export default function SignupPage() {
       setError('Something went wrong. Please try again.')
     }
     setLoading(false)
+  }
+
+  if (emailSent) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card" style={{ textAlign: 'center' }}>
+          <div className="auth-logo">
+            <img src="/logo-full.png" alt="Solis OS" style={{ height: '130px', width: 'auto' }} />
+          </div>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>&#9993;</div>
+          <h1 className="auth-title">Check your email</h1>
+          <p className="auth-subtitle" style={{ marginBottom: '24px' }}>
+            We sent a verification link to <strong style={{ color: 'var(--text)' }}>{email}</strong>. Click the link in the email to activate your account.
+          </p>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px' }}>
+            Didn't receive the email? Check your spam folder or try signing up again.
+          </p>
+          <Link to="/login" className="btn btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>
+            Go to Sign In
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (

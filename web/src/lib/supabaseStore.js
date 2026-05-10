@@ -1,32 +1,20 @@
 import { supabase } from './supabase'
 
-const AUTH_API = 'https://8deb5aa57fdd8b8f-167-235-196-123.serveousercontent.com'
-
 export const supabaseStore = {
   async signUp(email, password, fullName) {
-    try {
-      const resp = await fetch(`${AUTH_API}/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, fullName }),
-      })
-      const result = await resp.json()
-      if (!resp.ok) return { error: { message: result.error || 'Signup failed' } }
-
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) return { error: { message: error.message } }
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: `${window.location.origin}/login`,
+      },
+    })
+    if (error) return { error: { message: error.message } }
+    if (data.session) {
       return { data: { user: { id: data.user.id, email: data.user.email, full_name: fullName } }, error: null }
-    } catch (err) {
-      const { data, error } = await supabase.auth.signUp({
-        email, password,
-        options: { data: { full_name: fullName } }
-      })
-      if (error) return { error: { message: error.message } }
-      if (data.session) {
-        return { data: { user: { id: data.user.id, email: data.user.email, full_name: fullName } }, error: null }
-      }
-      return { error: { message: 'Please check your email to confirm your account.' } }
     }
+    return { data: null, error: null, confirmEmail: true }
   },
 
   async signIn(email, password) {
