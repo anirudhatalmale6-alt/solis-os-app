@@ -50,9 +50,9 @@ export const supabaseStore = {
   },
 
   async getBusiness(userId) {
-    const { data, error } = await supabase.from('businesses').select('*').eq('owner_id', userId).maybeSingle()
+    const { data, error } = await supabase.from('businesses').select('*').eq('owner_id', userId)
     if (error) throw new Error(error.message)
-    return data || null
+    return (data && data.length > 0) ? data[0] : null
   },
 
   async getBusinessById(id) {
