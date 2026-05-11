@@ -15,9 +15,20 @@ import { dataStore } from '../lib/dataStore'
 
 function timeAgo(dateStr) {
   const now = new Date()
-  const date = new Date(dateStr + 'T12:00:00')
-  const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24))
-  if (diffDays === 0) return 'Today'
+  const date = dateStr && dateStr.includes('T') ? new Date(dateStr) : new Date((dateStr || '') + 'T12:00:00')
+  const diffMs = now - date
+  const diffMins = Math.floor(Math.abs(diffMs) / 60000)
+  if (diffMs < 0) {
+    if (diffMins < 60) return 'In a few minutes'
+    const days = Math.ceil(Math.abs(diffMs) / 86400000)
+    if (days <= 1) return 'Tomorrow'
+    return `In ${days} days`
+  }
+  if (diffMins < 2) return 'Just now'
+  if (diffMins < 60) return `${diffMins} minutes ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+  const diffDays = Math.floor(diffHours / 24)
   if (diffDays === 1) return 'Yesterday'
   if (diffDays < 7) return `${diffDays} days ago`
   if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`
@@ -29,9 +40,10 @@ function todayStr() {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
 }
 
-function generateNotifications(bookings, customers) {
+function generateNotifications(bookings, customers, services) {
   const notifications = []
   const today = todayStr()
+  const svcName = (b) => b.service_name || (services || []).find(s => s.id === b.service_id)?.name || 'Service'
 
   bookings.forEach(b => {
     if (b.status === 'confirmed' && b.date === today) {
@@ -42,8 +54,8 @@ function generateNotifications(bookings, customers) {
         color: 'var(--accent-bright)',
         bgColor: 'rgba(59,130,246,0.1)',
         title: 'Upcoming Appointment',
-        message: `${b.customer_name} has a ${b.service_name} appointment at ${b.time} today.`,
-        date: b.date,
+        message: `${b.customer_name} has a ${svcName(b)} appointment at ${b.time} today.`,
+        date: b.created_at || b.date,
         read: false,
       })
     }
@@ -56,8 +68,8 @@ function generateNotifications(bookings, customers) {
         color: 'var(--green)',
         bgColor: 'rgba(34,197,94,0.1)',
         title: 'New Booking',
-        message: `${b.customer_name} booked ${b.service_name} for ${b.date} at ${b.time}.`,
-        date: b.date,
+        message: `${b.customer_name} booked ${svcName(b)} for ${b.date} at ${b.time}.`,
+        date: b.created_at || b.date,
         read: false,
       })
     }
@@ -70,8 +82,8 @@ function generateNotifications(bookings, customers) {
         color: 'var(--teal)',
         bgColor: 'rgba(45,212,191,0.1)',
         title: 'Appointment Completed',
-        message: `${b.service_name} with ${b.customer_name} on ${b.date} was completed.`,
-        date: b.date,
+        message: `${svcName(b)} with ${b.customer_name} on ${b.date} was completed.`,
+        date: b.created_at || b.date,
         read: true,
       })
     }
@@ -84,8 +96,8 @@ function generateNotifications(bookings, customers) {
         color: 'var(--rose)',
         bgColor: 'rgba(244,63,94,0.1)',
         title: 'Booking Cancelled',
-        message: `${b.customer_name} cancelled their ${b.service_name} appointment on ${b.date}.`,
-        date: b.date,
+        message: `${b.customer_name} cancelled their ${svcName(b)} appointment on ${b.date}.`,
+        date: b.created_at || b.date,
         read: true,
       })
     }
@@ -127,9 +139,12 @@ export default function MessagesPage() {
       const biz = await dataStore.getBusiness(user.id)
       if (biz) {
         setBusiness(biz)
-        const bookings = await dataStore.getBookings(biz.id)
-        const customers = await dataStore.getCustomers(biz.id)
-        setNotifications(generateNotifications(bookings, customers))
+        const [bookings, customers, services] = await Promise.all([
+          dataStore.getBookings(biz.id),
+          dataStore.getCustomers(biz.id),
+          dataStore.getServices(biz.id),
+        ])
+        setNotifications(generateNotifications(bookings, customers, services))
       }
     }
     loadData()

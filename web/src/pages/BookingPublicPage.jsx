@@ -172,6 +172,7 @@ export default function BookingPublicPage() {
       const result = await dataStore.addBooking({
         business_id: business.id,
         service_id: selectedService.id,
+        service_name: selectedService.name,
         customer_name: customerName,
         customer_phone: customerPhone,
         date: selectedDate,
