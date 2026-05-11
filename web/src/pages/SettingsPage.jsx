@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
+import { MessageCircle, Copy, Check } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
+
+const API_BASE = 'https://chatbot.veltrixtv.com'
 
 const CURRENCIES = [
   { code: 'USD', label: 'USD ($)' },
@@ -15,6 +18,7 @@ export default function SettingsPage() {
   const { user, signOut } = useAuth()
   const [business, setBusiness] = useState(null)
   const [saved, setSaved] = useState(false)
+  const [whatsappCopied, setWhatsappCopied] = useState(false)
 
   // Business fields
   const [name, setName] = useState('')
@@ -26,6 +30,7 @@ export default function SettingsPage() {
   const [country, setCountry] = useState('')
   const [timezone, setTimezone] = useState('')
   const [currency, setCurrency] = useState('USD')
+  const [whatsappNumber, setWhatsappNumber] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -42,6 +47,13 @@ export default function SettingsPage() {
         setCountry(biz.country || '')
         setTimezone(biz.timezone || '')
         setCurrency(biz.currency || 'USD')
+        try {
+          const waResp = await fetch(`${API_BASE}/api/whatsapp/${biz.id}`)
+          if (waResp.ok) {
+            const waData = await waResp.json()
+            setWhatsappNumber(waData.whatsapp_number || '')
+          }
+        } catch {}
       }
     }
     loadData()
@@ -53,6 +65,13 @@ export default function SettingsPage() {
       name, industry, phone, email,
       address, city, country, timezone, currency,
     })
+    try {
+      await fetch(`${API_BASE}/api/whatsapp/${business.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ whatsapp_number: whatsappNumber }),
+      })
+    } catch {}
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }
@@ -97,6 +116,11 @@ export default function SettingsPage() {
               <option value="salon">Salon & Beauty</option>
               <option value="garage">Auto Garage</option>
               <option value="clinic">Clinic & Health</option>
+              <option value="real_estate">Real Estate Agency</option>
+              <option value="fitness">Fitness & Gym</option>
+              <option value="spa">Spa & Wellness</option>
+              <option value="restaurant">Restaurant & Dining</option>
+              <option value="dental">Dental Practice</option>
               <option value="other">Other</option>
             </select>
           </div>
@@ -173,6 +197,60 @@ export default function SettingsPage() {
             Save Changes
           </button>
         </div>
+      </div>
+
+      {/* WhatsApp Integration */}
+      <div className="card">
+        <div className="card-title">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <MessageCircle size={18} style={{ color: '#25D366' }} />
+            <span>WhatsApp Integration</span>
+          </div>
+        </div>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: '1.6' }}>
+          Add your WhatsApp Business number to let customers contact you directly and book appointments via WhatsApp.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', alignItems: 'end' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">WhatsApp Number</label>
+            <input
+              type="tel"
+              className="form-input"
+              placeholder="+1 555 123 4567"
+              value={whatsappNumber}
+              onChange={(e) => setWhatsappNumber(e.target.value)}
+            />
+          </div>
+          {whatsappNumber && business && (
+            <div style={{ marginBottom: '4px' }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                onClick={() => {
+                  const cleanNum = whatsappNumber.replace(/[^0-9]/g, '')
+                  const bookingUrl = `${window.location.origin}/book/${business.id}`
+                  const msg = `Hi! I'd like to book an appointment. Booking page: ${bookingUrl}`
+                  const link = `https://wa.me/${cleanNum}?text=${encodeURIComponent(msg)}`
+                  navigator.clipboard.writeText(link)
+                  setWhatsappCopied(true)
+                  setTimeout(() => setWhatsappCopied(false), 2000)
+                }}
+              >
+                {whatsappCopied ? <Check size={14} /> : <Copy size={14} />}
+                {whatsappCopied ? 'Copied!' : 'Copy Chat Link'}
+              </button>
+            </div>
+          )}
+        </div>
+        {whatsappNumber && (
+          <div style={{
+            marginTop: '16px', padding: '14px', borderRadius: 'var(--radius-sm)',
+            background: 'rgba(37,211,102,0.06)', border: '1px solid rgba(37,211,102,0.15)',
+            fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6'
+          }}>
+            Your WhatsApp link will appear on your public booking page. Customers can tap it to message you directly on WhatsApp for bookings, questions, or support.
+          </div>
+        )}
       </div>
 
       {/* Account Info */}

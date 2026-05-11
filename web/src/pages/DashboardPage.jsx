@@ -22,12 +22,22 @@ import {
   Scissors,
   Stethoscope,
   Briefcase,
+  Home,
+  Dumbbell,
+  Flower2,
+  UtensilsCrossed,
+  SmilePlus,
 } from 'lucide-react'
 
 const industryServiceIcon = {
   salon: Scissors,
   clinic: Stethoscope,
   garage: Wrench,
+  real_estate: Home,
+  fitness: Dumbbell,
+  spa: Flower2,
+  restaurant: UtensilsCrossed,
+  dental: SmilePlus,
   other: Briefcase,
 }
 import { useAuth } from '../hooks/useAuth'

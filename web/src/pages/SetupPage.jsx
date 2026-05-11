@@ -25,6 +25,41 @@ const INDUSTRY_TEMPLATES = {
     { name: 'Lab Work', price: 90, duration: 45 },
     { name: 'Consultation', price: 100, duration: 60 },
   ],
+  real_estate: [
+    { name: 'Property Viewing', price: 0, duration: 60 },
+    { name: 'Home Valuation', price: 150, duration: 90 },
+    { name: 'Buyer Consultation', price: 0, duration: 45 },
+    { name: 'Property Photography', price: 200, duration: 120 },
+    { name: 'Open House', price: 0, duration: 120 },
+  ],
+  fitness: [
+    { name: 'Personal Training', price: 60, duration: 60 },
+    { name: 'Group Class', price: 25, duration: 45 },
+    { name: 'Fitness Assessment', price: 40, duration: 30 },
+    { name: 'Yoga Session', price: 20, duration: 60 },
+    { name: 'Nutrition Consultation', price: 50, duration: 45 },
+  ],
+  spa: [
+    { name: 'Swedish Massage', price: 80, duration: 60 },
+    { name: 'Deep Tissue Massage', price: 100, duration: 90 },
+    { name: 'Facial Treatment', price: 65, duration: 45 },
+    { name: 'Body Wrap', price: 90, duration: 60 },
+    { name: 'Hot Stone Therapy', price: 110, duration: 75 },
+  ],
+  restaurant: [
+    { name: 'Table Reservation', price: 0, duration: 90 },
+    { name: 'Private Dining', price: 100, duration: 180 },
+    { name: 'Catering Consultation', price: 0, duration: 45 },
+    { name: 'Wine Tasting', price: 50, duration: 120 },
+    { name: 'Chef\'s Table', price: 200, duration: 150 },
+  ],
+  dental: [
+    { name: 'Dental Checkup', price: 100, duration: 30 },
+    { name: 'Teeth Cleaning', price: 80, duration: 45 },
+    { name: 'Filling', price: 150, duration: 60 },
+    { name: 'Whitening', price: 250, duration: 90 },
+    { name: 'X-Ray', price: 75, duration: 20 },
+  ],
 }
 
 const CURRENCIES = [
@@ -316,6 +351,11 @@ export default function SetupPage() {
                 <option value="salon">Salon & Beauty</option>
                 <option value="garage">Auto Garage</option>
                 <option value="clinic">Clinic & Health</option>
+                <option value="real_estate">Real Estate Agency</option>
+                <option value="fitness">Fitness & Gym</option>
+                <option value="spa">Spa & Wellness</option>
+                <option value="restaurant">Restaurant & Dining</option>
+                <option value="dental">Dental Practice</option>
                 <option value="other">Other</option>
               </select>
             </div>

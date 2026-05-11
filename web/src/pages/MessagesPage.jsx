@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import {
-  MessageSquare,
   Bell,
   CalendarCheck,
   UserPlus,
@@ -168,8 +167,6 @@ export default function MessagesPage() {
     ? active
     : active.filter(n => n.type === filter)
 
-  const unreadCount = active.filter(n => !n.read).length
-
   const filters = [
     { key: 'all', label: 'All' },
     { key: 'upcoming', label: 'Upcoming' },
@@ -188,16 +185,16 @@ export default function MessagesPage() {
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '20px' }}>
         <div className="stat-card">
           <div className="stat-card-icon"><Bell size={22} /></div>
-          <div className="stat-card-label">Active Notifications</div>
+          <div className="stat-card-label">Total Notifications</div>
           <div className="stat-card-value">{active.length}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon"><MessageSquare size={22} /></div>
-          <div className="stat-card-label">Unread</div>
-          <div className="stat-card-value">{unreadCount}</div>
+          <div className="stat-card-icon"><CalendarCheck size={22} /></div>
+          <div className="stat-card-label">Upcoming Bookings</div>
+          <div className="stat-card-value">{active.filter(n => n.type === 'upcoming' || n.type === 'new_booking').length}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon"><CalendarCheck size={22} /></div>
+          <div className="stat-card-icon"><Clock size={22} /></div>
           <div className="stat-card-label">Today's Events</div>
           <div className="stat-card-value">{active.filter(n => n.date === todayStr()).length}</div>
         </div>
