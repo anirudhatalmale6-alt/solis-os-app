@@ -88,32 +88,8 @@ function ProtectedRoute({ children }) {
 
 function PublicRoute({ children }) {
   const { user, loading } = useAuth()
-  const [business, setBusiness] = useState(undefined)
-  const [retries, setRetries] = useState(0)
 
-  useEffect(() => {
-    if (!user) {
-      setBusiness(null)
-      return
-    }
-    let cancelled = false
-    const fetchBusiness = async () => {
-      try {
-        const biz = await dataStore.getBusiness(user.id)
-        if (!cancelled) setBusiness(biz ?? null)
-      } catch {
-        if (!cancelled && retries < 2) {
-          setTimeout(() => setRetries(r => r + 1), 1000)
-        } else if (!cancelled) {
-          setBusiness(null)
-        }
-      }
-    }
-    fetchBusiness()
-    return () => { cancelled = true }
-  }, [user, retries])
-
-  if (loading || (user && business === undefined)) {
+  if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', color: 'var(--text-secondary)' }}>
         Loading...
@@ -122,7 +98,7 @@ function PublicRoute({ children }) {
   }
 
   if (user) {
-    return <Navigate to={business ? '/dashboard' : '/setup'} replace />
+    return <Navigate to="/dashboard" replace />
   }
 
   return children
