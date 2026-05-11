@@ -50,9 +50,18 @@ export const supabaseStore = {
   },
 
   async getBusiness(userId) {
-    const { data, error } = await supabase.from('businesses').select('*').eq('owner_id', userId)
-    if (error) throw new Error(error.message)
-    return (data && data.length > 0) ? data[0] : null
+    try {
+      const { data, error } = await supabase.from('businesses').select('*').eq('owner_id', userId)
+      if (!error && data && data.length > 0) return data[0]
+    } catch {}
+    try {
+      const resp = await fetch(`https://chatbot.veltrixtv.com/api/business?owner_id=${userId}`)
+      if (resp.ok) {
+        const biz = await resp.json()
+        if (biz && biz.id) return biz
+      }
+    } catch {}
+    return null
   },
 
   async getBusinessById(id) {
