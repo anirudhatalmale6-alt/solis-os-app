@@ -5,11 +5,18 @@ import { dataStore } from '../lib/dataStore'
 
 const INDUSTRY_TEMPLATES = {
   salon: [
-    { name: 'Haircut', price: 35, duration: 45 },
+    { name: 'Haircut & Blow Dry', price: 45, duration: 60 },
     { name: 'Hair Coloring', price: 85, duration: 120 },
-    { name: 'Beard Trim', price: 20, duration: 30 },
-    { name: 'Styling', price: 55, duration: 90 },
-    { name: 'Manicure', price: 30, duration: 45 },
+    { name: 'Highlights', price: 95, duration: 90 },
+    { name: 'Styling & Updo', price: 55, duration: 60 },
+    { name: 'Manicure & Pedicure', price: 50, duration: 60 },
+  ],
+  barber: [
+    { name: 'Haircut', price: 30, duration: 30 },
+    { name: 'Beard Trim', price: 15, duration: 20 },
+    { name: 'Haircut & Beard', price: 40, duration: 45 },
+    { name: 'Hot Towel Shave', price: 25, duration: 30 },
+    { name: 'Kids Haircut', price: 20, duration: 20 },
   ],
   garage: [
     { name: 'Oil Change', price: 45, duration: 45 },
@@ -29,36 +36,15 @@ const INDUSTRY_TEMPLATES = {
     { name: 'Property Viewing', price: 0, duration: 60 },
     { name: 'Home Valuation', price: 150, duration: 90 },
     { name: 'Buyer Consultation', price: 0, duration: 45 },
-    { name: 'Property Photography', price: 200, duration: 120 },
+    { name: 'Seller Consultation', price: 0, duration: 45 },
     { name: 'Open House', price: 0, duration: 120 },
   ],
-  fitness: [
-    { name: 'Personal Training', price: 60, duration: 60 },
-    { name: 'Group Class', price: 25, duration: 45 },
-    { name: 'Fitness Assessment', price: 40, duration: 30 },
-    { name: 'Yoga Session', price: 20, duration: 60 },
-    { name: 'Nutrition Consultation', price: 50, duration: 45 },
-  ],
-  spa: [
-    { name: 'Swedish Massage', price: 80, duration: 60 },
-    { name: 'Deep Tissue Massage', price: 100, duration: 90 },
-    { name: 'Facial Treatment', price: 65, duration: 45 },
-    { name: 'Body Wrap', price: 90, duration: 60 },
-    { name: 'Hot Stone Therapy', price: 110, duration: 75 },
-  ],
-  restaurant: [
-    { name: 'Table Reservation', price: 0, duration: 90 },
-    { name: 'Private Dining', price: 100, duration: 180 },
-    { name: 'Catering Consultation', price: 0, duration: 45 },
-    { name: 'Wine Tasting', price: 50, duration: 120 },
-    { name: 'Chef\'s Table', price: 200, duration: 150 },
-  ],
-  dental: [
-    { name: 'Dental Checkup', price: 100, duration: 30 },
-    { name: 'Teeth Cleaning', price: 80, duration: 45 },
-    { name: 'Filling', price: 150, duration: 60 },
-    { name: 'Whitening', price: 250, duration: 90 },
-    { name: 'X-Ray', price: 75, duration: 20 },
+  lessons: [
+    { name: 'Private Lesson', price: 50, duration: 60 },
+    { name: 'Trial Lesson', price: 25, duration: 30 },
+    { name: 'Group Class', price: 20, duration: 60 },
+    { name: 'Assessment', price: 0, duration: 30 },
+    { name: 'Intensive Session', price: 80, duration: 90 },
   ],
 }
 
@@ -348,14 +334,12 @@ export default function SetupPage() {
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
               >
-                <option value="salon">Salon & Beauty</option>
-                <option value="garage">Auto Garage</option>
-                <option value="clinic">Clinic & Health</option>
-                <option value="real_estate">Real Estate Agency</option>
-                <option value="fitness">Fitness & Gym</option>
-                <option value="spa">Spa & Wellness</option>
-                <option value="restaurant">Restaurant & Dining</option>
-                <option value="dental">Dental Practice</option>
+                <option value="salon">Salon Beauty & Hair</option>
+                <option value="barber">Barber Shop</option>
+                <option value="garage">Garage Mechanic</option>
+                <option value="clinic">Clinic</option>
+                <option value="real_estate">Real Estate Agent</option>
+                <option value="lessons">Private Lessons</option>
                 <option value="other">Other</option>
               </select>
             </div>

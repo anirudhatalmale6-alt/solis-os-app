@@ -113,14 +113,12 @@ export default function SettingsPage() {
               value={industry}
               onChange={(e) => setIndustry(e.target.value)}
             >
-              <option value="salon">Salon & Beauty</option>
-              <option value="garage">Auto Garage</option>
-              <option value="clinic">Clinic & Health</option>
-              <option value="real_estate">Real Estate Agency</option>
-              <option value="fitness">Fitness & Gym</option>
-              <option value="spa">Spa & Wellness</option>
-              <option value="restaurant">Restaurant & Dining</option>
-              <option value="dental">Dental Practice</option>
+              <option value="salon">Salon Beauty & Hair</option>
+              <option value="barber">Barber Shop</option>
+              <option value="garage">Garage Mechanic</option>
+              <option value="clinic">Clinic</option>
+              <option value="real_estate">Real Estate Agent</option>
+              <option value="lessons">Private Lessons</option>
               <option value="other">Other</option>
             </select>
           </div>

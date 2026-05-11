@@ -19,21 +19,16 @@ import {
   LogOut,
   Link2,
   Home,
-  Dumbbell,
-  Flower2,
-  UtensilsCrossed,
-  SmilePlus,
+  GraduationCap,
 } from 'lucide-react'
 
 const industryServiceIcon = {
   salon: Scissors,
+  barber: Scissors,
   clinic: Stethoscope,
   garage: Wrench,
   real_estate: Home,
-  fitness: Dumbbell,
-  spa: Flower2,
-  restaurant: UtensilsCrossed,
-  dental: SmilePlus,
+  lessons: GraduationCap,
   other: Briefcase,
 }
 
