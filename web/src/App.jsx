@@ -69,16 +69,42 @@ function ProtectedRoute({ children }) {
 
   if (!business && !window.location.pathname.startsWith('/setup') && !window.location.pathname.startsWith('/verify')) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: '16px', padding: '20px', textAlign: 'center' }}>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-          Debug: user={user?.id?.slice(0,8)}... email={user?.email} biz=null err={lastError || 'none'} retries={retries}
-        </p>
-        <button onClick={() => { setBusiness(undefined); setRetries(0); }} style={{ padding: '8px 16px', cursor: 'pointer' }}>
-          Retry
-        </button>
-        <button onClick={() => window.location.href = '/setup'} style={{ padding: '8px 16px', cursor: 'pointer', marginTop: '8px' }}>
-          Continue to Setup
-        </button>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: '20px', padding: '32px', textAlign: 'center', background: 'var(--bg-primary, #fff)' }}>
+        <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--bg-secondary, #f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+          🏢
+        </div>
+        <div style={{ maxWidth: '360px' }}>
+          <h2 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: 600, color: 'var(--text-primary, #111)' }}>
+            {lastError ? 'Unable to load your business' : 'No business found'}
+          </h2>
+          <p style={{ margin: 0, fontSize: '14px', lineHeight: 1.5, color: 'var(--text-secondary, #6b7280)' }}>
+            {lastError
+              ? 'Something went wrong while loading your account. Please try again or continue to set up a new business.'
+              : 'It looks like you haven’t set up a business yet. Continue to get started in just a few steps.'}
+          </p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '260px' }}>
+          <button
+            onClick={() => { setBusiness(undefined); setRetries(0); }}
+            style={{
+              padding: '10px 20px', cursor: 'pointer', borderRadius: '8px',
+              border: '1px solid var(--border-primary, #d1d5db)', background: 'var(--bg-primary, #fff)',
+              color: 'var(--text-primary, #111)', fontSize: '14px', fontWeight: 500
+            }}
+          >
+            Retry
+          </button>
+          <button
+            onClick={() => window.location.href = '/setup'}
+            style={{
+              padding: '10px 20px', cursor: 'pointer', borderRadius: '8px',
+              border: 'none', background: 'var(--accent, #6366f1)',
+              color: '#fff', fontSize: '14px', fontWeight: 500
+            }}
+          >
+            Continue to Setup
+          </button>
+        </div>
       </div>
     )
   }
