@@ -24,19 +24,24 @@ function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
   const [business, setBusiness] = useState(undefined)
   const [retries, setRetries] = useState(0)
+  const [lastError, setLastError] = useState(null)
 
   useEffect(() => {
     if (!user) return
     let cancelled = false
     const fetchBusiness = async () => {
       try {
+        setLastError(null)
         const biz = await dataStore.getBusiness(user.id)
         if (!cancelled) setBusiness(biz ?? null)
-      } catch {
-        if (!cancelled && retries < 3) {
-          setTimeout(() => setRetries(r => r + 1), 1500)
-        } else if (!cancelled) {
-          setBusiness(null)
+      } catch (err) {
+        if (!cancelled) {
+          setLastError(err.message || 'Unknown error')
+          if (retries < 3) {
+            setTimeout(() => setRetries(r => r + 1), 1500)
+          } else {
+            setBusiness(null)
+          }
         }
       }
     }
@@ -57,13 +62,25 @@ function ProtectedRoute({ children }) {
   if (business === undefined) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', color: 'var(--text-secondary)' }}>
-        Loading...
+        Loading... {retries > 0 ? `(retry ${retries}/3)` : ''}
       </div>
     )
   }
 
   if (!business && !window.location.pathname.startsWith('/setup') && !window.location.pathname.startsWith('/verify')) {
-    return <Navigate to="/setup" replace />
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: '16px', padding: '20px', textAlign: 'center' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+          Debug: user={user?.id?.slice(0,8)}... email={user?.email} biz=null err={lastError || 'none'} retries={retries}
+        </p>
+        <button onClick={() => { setBusiness(undefined); setRetries(0); }} style={{ padding: '8px 16px', cursor: 'pointer' }}>
+          Retry
+        </button>
+        <button onClick={() => window.location.href = '/setup'} style={{ padding: '8px 16px', cursor: 'pointer', marginTop: '8px' }}>
+          Continue to Setup
+        </button>
+      </div>
+    )
   }
 
   return children
