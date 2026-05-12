@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { dataStore } from '../lib/dataStore'
+import { fetchFromCloud } from '../lib/cloudSync'
 
 const DAYS_OF_WEEK = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
-function getNext14Days() {
+function getNext90Days() {
   const days = []
   const today = new Date()
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 90; i++) {
     const d = new Date(today)
     d.setDate(today.getDate() + i)
     days.push({
@@ -80,12 +81,26 @@ export default function BookingPublicPage() {
   const [booked, setBooked] = useState(false)
   const [bookingError, setBookingError] = useState('')
   const [bookingLoading, setBookingLoading] = useState(false)
+  const [publicTab, setPublicTab] = useState('book')
+  const [reviews, setReviews] = useState([])
+  const [loyaltyConfig, setLoyaltyConfig] = useState(null)
+  const [giftCards, setGiftCards] = useState([])
+  const [giftCardThemes] = useState([
+    { name: 'Purple Dream', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 40%, #f093fb 100%)' },
+    { name: 'Ocean Blue', gradient: 'linear-gradient(135deg, #0061ff 0%, #00d4ff 100%)' },
+    { name: 'Sunset', gradient: 'linear-gradient(135deg, #f12711 0%, #f5af19 100%)' },
+    { name: 'Emerald', gradient: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' },
+    { name: 'Midnight', gradient: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)' },
+    { name: 'Rose Gold', gradient: 'linear-gradient(135deg, #f4c4f3 0%, #fc67fa 50%, #cf8bf3 100%)' },
+    { name: 'Golden', gradient: 'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)' },
+    { name: 'Charcoal', gradient: 'linear-gradient(135deg, #434343 0%, #1a1a2e 100%)' },
+  ])
 
   // Async-loaded day data
   const [dayBookings, setDayBookings] = useState([])
   const [timeSlots, setTimeSlots] = useState([])
 
-  const dates = getNext14Days()
+  const dates = getNext90Days()
 
   useEffect(() => {
     const loadInitial = async () => {
@@ -104,6 +119,16 @@ export default function BookingPublicPage() {
           const waData = await waResp.json()
           if (waData.whatsapp_number) setWhatsappNumber(waData.whatsapp_number)
         }
+      } catch {}
+      try {
+        const [cloudReviews, cloudLoyalty, cloudGC] = await Promise.all([
+          fetchFromCloud(biz.id, 'reviews'),
+          fetchFromCloud(biz.id, 'loyalty'),
+          fetchFromCloud(biz.id, 'giftcards'),
+        ])
+        if (Array.isArray(cloudReviews)) setReviews(cloudReviews.filter(r => r.rating >= 1))
+        if (cloudLoyalty?.enabled) setLoyaltyConfig(cloudLoyalty)
+        if (Array.isArray(cloudGC)) setGiftCards(cloudGC.filter(g => g.status === 'active'))
       } catch {}
     }
     loadInitial()
@@ -171,7 +196,7 @@ export default function BookingPublicPage() {
 
   const handleSubmitDetails = (e) => {
     e.preventDefault()
-    if (!customerName || !customerPhone) return
+    if (!customerName || !customerPhone || !customerEmail) return
     setStep(4)
   }
 
@@ -283,7 +308,24 @@ export default function BookingPublicPage() {
           )}
         </div>
 
-        {!booked && (
+        <div style={{ display: 'flex', gap: '0', marginBottom: '24px', borderBottom: '2px solid var(--border)', overflow: 'auto' }}>
+          {[
+            { key: 'book', label: 'Book Now' },
+            { key: 'giftcards', label: 'Gift Cards' },
+            { key: 'loyalty', label: 'Rewards' },
+            { key: 'reviews', label: 'Reviews' },
+          ].map(tab => (
+            <button key={tab.key} onClick={() => setPublicTab(tab.key)} style={{
+              padding: '10px 18px', fontSize: '13px', fontWeight: publicTab === tab.key ? 600 : 400,
+              color: publicTab === tab.key ? 'var(--accent-bright)' : 'var(--text-muted)',
+              background: 'none', border: 'none', cursor: 'pointer',
+              borderBottom: publicTab === tab.key ? '2px solid var(--accent-bright)' : '2px solid transparent',
+              marginBottom: '-2px', whiteSpace: 'nowrap', transition: 'all 0.2s',
+            }}>{tab.label}</button>
+          ))}
+        </div>
+
+        {publicTab === 'book' && !booked && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginBottom: '24px' }}>
             {stepLabels.map((label, i) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -304,7 +346,7 @@ export default function BookingPublicPage() {
         )}
 
         {/* Step 1: Select Service */}
-        {step === 1 && (
+        {publicTab === 'book' && step === 1 && (
           <div>
             <div className="card-title" style={{ marginBottom: '16px' }}>Select a Service</div>
             {services.length === 0 ? (
@@ -329,7 +371,7 @@ export default function BookingPublicPage() {
         )}
 
         {/* Step 2: Select Date & Time */}
-        {step === 2 && (
+        {publicTab === 'book' && step === 2 && (
           <div>
             <div style={{ marginBottom: '16px' }}>
               <button className="btn btn-ghost" onClick={() => setStep(1)} style={{ paddingLeft: 0 }}>
@@ -341,20 +383,37 @@ export default function BookingPublicPage() {
               {selectedService.name} · {selectedService.duration || 30} min
             </p>
 
-            <div className="date-chips">
-              {dates.map(d => (
-                <div
-                  key={d.dateStr}
-                  className={`date-chip ${selectedDate === d.dateStr ? 'selected' : ''} ${!isDateAvailable(d.dateStr) ? 'unavailable' : ''}`}
-                  onClick={() => isDateAvailable(d.dateStr) && handleSelectDate(d.dateStr)}
-                  style={!isDateAvailable(d.dateStr) ? { opacity: 0.3, cursor: 'not-allowed' } : {}}
-                >
-                  <div style={{ fontSize: '11px', color: selectedDate === d.dateStr ? 'var(--accent-bright)' : 'var(--text-muted)' }}>{d.dayName}</div>
-                  <div style={{ fontWeight: 600 }}>{d.dayNum}</div>
-                  <div style={{ fontSize: '11px', color: selectedDate === d.dateStr ? 'var(--accent-bright)' : 'var(--text-muted)' }}>{d.monthName}</div>
+            {(() => {
+              const months = []
+              let currentMonth = ''
+              dates.forEach(d => {
+                const key = d.dateStr.slice(0, 7)
+                if (key !== currentMonth) {
+                  currentMonth = key
+                  const label = new Date(d.dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                  months.push({ label, days: [] })
+                }
+                months[months.length - 1].days.push(d)
+              })
+              return months.map(m => (
+                <div key={m.label} style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>{m.label}</div>
+                  <div className="date-chips">
+                    {m.days.map(d => (
+                      <div
+                        key={d.dateStr}
+                        className={`date-chip ${selectedDate === d.dateStr ? 'selected' : ''} ${!isDateAvailable(d.dateStr) ? 'unavailable' : ''}`}
+                        onClick={() => isDateAvailable(d.dateStr) && handleSelectDate(d.dateStr)}
+                        style={!isDateAvailable(d.dateStr) ? { opacity: 0.3, cursor: 'not-allowed' } : {}}
+                      >
+                        <div style={{ fontSize: '11px', color: selectedDate === d.dateStr ? 'var(--accent-bright)' : 'var(--text-muted)' }}>{d.dayName}</div>
+                        <div style={{ fontWeight: 600 }}>{d.dayNum}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
+              ))
+            })()}
 
             {selectedDate && (
               <>
@@ -385,7 +444,7 @@ export default function BookingPublicPage() {
         )}
 
         {/* Step 3: Your Details */}
-        {step === 3 && (
+        {publicTab === 'book' && step === 3 && (
           <div>
             <div style={{ marginBottom: '16px' }}>
               <button className="btn btn-ghost" onClick={() => setStep(2)} style={{ paddingLeft: 0 }}>
@@ -417,13 +476,14 @@ export default function BookingPublicPage() {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Email (optional)</label>
+                <label className="form-label">Email *</label>
                 <input
                   type="email"
                   className="form-input"
                   placeholder="your@email.com"
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
+                  required
                 />
               </div>
               <button type="submit" className="btn btn-primary" style={{ marginTop: '8px' }}>
@@ -434,7 +494,7 @@ export default function BookingPublicPage() {
         )}
 
         {/* Step 4: Confirmation */}
-        {step === 4 && (
+        {publicTab === 'book' && step === 4 && (
           <div>
             <div style={{ marginBottom: '16px' }}>
               <button className="btn btn-ghost" onClick={() => setStep(3)} style={{ paddingLeft: 0 }}>
@@ -476,6 +536,188 @@ export default function BookingPublicPage() {
             <button className="btn btn-primary" style={{ marginTop: '20px', opacity: bookingLoading ? 0.7 : 1 }} onClick={handleConfirm} disabled={bookingLoading}>
               {bookingLoading ? 'Booking...' : 'Confirm Booking'}
             </button>
+          </div>
+        )}
+
+        {publicTab === 'giftcards' && (
+          <div>
+            <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '6px' }}>Gift Cards</div>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+              Give the gift of {business.name}. Available gift cards below.
+            </p>
+            {giftCards.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '14px' }}>
+                <div style={{ fontSize: '40px', marginBottom: '12px' }}>🎁</div>
+                No gift cards available at the moment. Check back soon!
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: '16px' }}>
+                {giftCards.map(gc => {
+                  const theme = giftCardThemes[gc.theme || 0] || giftCardThemes[0]
+                  const curr = business?.currency || 'USD'
+                  const sym = { USD: '$', EUR: '€', GBP: '£', CAD: 'C$', AUD: 'A$', INR: '₹' }[curr] || '$'
+                  return (
+                    <div key={gc.id} style={{
+                      borderRadius: '16px', padding: '24px', background: theme.gradient,
+                      color: '#fff', position: 'relative', overflow: 'hidden',
+                    }}>
+                      <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+                      <div style={{ position: 'relative', zIndex: 1 }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '2px', opacity: 0.8 }}>Gift Card</div>
+                        <div style={{ fontSize: '32px', fontWeight: 800, margin: '8px 0' }}>{sym}{gc.amount}</div>
+                        {gc.recipient_name && <div style={{ fontSize: '14px', opacity: 0.9 }}>For: {gc.recipient_name}</div>}
+                        {gc.message && <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '6px', fontStyle: 'italic' }}>"{gc.message}"</div>}
+                        <div style={{ fontSize: '11px', fontFamily: 'monospace', opacity: 0.6, marginTop: '12px', letterSpacing: '2px' }}>{gc.code}</div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Contact {business.name} to purchase a gift card
+              </p>
+            </div>
+          </div>
+        )}
+
+        {publicTab === 'loyalty' && (
+          <div>
+            <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '6px' }}>Rewards Program</div>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+              Earn points with every visit and unlock exclusive rewards!
+            </p>
+            {!loyaltyConfig ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '14px' }}>
+                <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏆</div>
+                Rewards program coming soon!
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+                  <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--bg)', border: '1px solid var(--border)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--accent-bright)' }}>{loyaltyConfig.points_per_booking}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Points per Visit</div>
+                  </div>
+                  <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--bg)', border: '1px solid var(--border)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--green)' }}>{loyaltyConfig.welcome_bonus}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Welcome Bonus</div>
+                  </div>
+                </div>
+
+                {loyaltyConfig.tiers && loyaltyConfig.tiers.length > 0 && (
+                  <>
+                    <div style={{ fontSize: '15px', fontWeight: 600, marginBottom: '12px' }}>Membership Tiers</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '24px' }}>
+                      {loyaltyConfig.tiers.map(tier => {
+                        const tierColors = { '#CD7F32': '#4a2f12', '#C0C0C0': '#333', '#FFD700': '#4a3a00', '#E5E4E2': '#333' }
+                        const txtColor = tierColors[tier.color] || '#fff'
+                        return (
+                          <div key={tier.id} style={{
+                            padding: '16px', borderRadius: '12px', textAlign: 'center',
+                            background: `linear-gradient(135deg, ${tier.color}, ${tier.color}cc)`,
+                            color: txtColor, border: `1px solid ${tier.color}66`,
+                          }}>
+                            <div style={{ fontSize: '14px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>{tier.name}</div>
+                            <div style={{ fontSize: '11px', opacity: 0.8, marginTop: '4px' }}>
+                              {tier.max ? `${tier.min} - ${tier.max} pts` : `${tier.min}+ pts`}
+                            </div>
+                            <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '6px' }}>{tier.perks}</div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+
+                {loyaltyConfig.rewards && loyaltyConfig.rewards.filter(r => r.active !== false).length > 0 && (
+                  <>
+                    <div style={{ fontSize: '15px', fontWeight: 600, marginBottom: '12px' }}>Available Rewards</div>
+                    <div style={{ display: 'grid', gap: '10px' }}>
+                      {loyaltyConfig.rewards.filter(r => r.active !== false).map(reward => (
+                        <div key={reward.id} style={{
+                          padding: '14px 16px', borderRadius: '10px', background: 'var(--bg)',
+                          border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        }}>
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: 600 }}>{reward.name}</div>
+                            {reward.description && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{reward.description}</div>}
+                          </div>
+                          <div style={{
+                            padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 700,
+                            background: 'rgba(59,130,246,0.15)', color: 'var(--accent-bright)',
+                          }}>{reward.points_cost} pts</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {loyaltyConfig.referral_enabled && (
+                  <div style={{
+                    marginTop: '20px', padding: '16px', borderRadius: '12px', textAlign: 'center',
+                    background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.2)',
+                  }}>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--purple)' }}>Refer a Friend</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                      Earn {loyaltyConfig.referral_bonus} bonus points for every friend you refer!
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {publicTab === 'reviews' && (
+          <div>
+            <div style={{ fontSize: '18px', fontWeight: 700, marginBottom: '6px' }}>Customer Reviews</div>
+            {reviews.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '14px' }}>
+                <div style={{ fontSize: '40px', marginBottom: '12px' }}>⭐</div>
+                No reviews yet. Be the first to leave one!
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                  <div style={{ fontSize: '36px', fontWeight: 800, color: 'var(--text)' }}>
+                    {(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '18px', letterSpacing: '1px' }}>
+                      {'★'.repeat(Math.round(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length))}
+                      {'☆'.repeat(5 - Math.round(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length))}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{reviews.length} review{reviews.length !== 1 ? 's' : ''}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {reviews.slice(0, 10).map(review => (
+                    <div key={review.id} style={{
+                      padding: '16px', borderRadius: '10px', background: 'var(--bg)', border: '1px solid var(--border)',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <div style={{ fontWeight: 600, fontSize: '14px' }}>{review.customer_name}</div>
+                        <div style={{ fontSize: '14px', color: '#f59e0b' }}>{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</div>
+                      </div>
+                      {review.comment && <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{review.comment}</div>}
+                      {review.reply && (
+                        <div style={{
+                          marginTop: '10px', padding: '10px 12px', borderRadius: '8px',
+                          background: 'rgba(59,130,246,0.08)', borderLeft: '3px solid var(--accent-bright)',
+                          fontSize: '12px', color: 'var(--text-secondary)',
+                        }}>
+                          <span style={{ fontWeight: 600, fontSize: '11px', color: 'var(--accent-bright)' }}>Business Reply: </span>
+                          {review.reply}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

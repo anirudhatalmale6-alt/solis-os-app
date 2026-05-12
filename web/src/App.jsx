@@ -19,6 +19,20 @@ import ResetPasswordPage from './pages/ResetPasswordPage'
 import CustomersPage from './pages/CustomersPage'
 import MessagesPage from './pages/MessagesPage'
 import BookingLinkPage from './pages/BookingLinkPage'
+import AnalyticsPage from './pages/AnalyticsPage'
+import InvoicesPage from './pages/InvoicesPage'
+import ReviewsPage from './pages/ReviewsPage'
+import PromosPage from './pages/PromosPage'
+import LoyaltyPage from './pages/LoyaltyPage'
+import LocationsPage from './pages/LocationsPage'
+import WorkspacePage from './pages/WorkspacePage'
+import WaitlistPage from './pages/WaitlistPage'
+import GiftCardsPage from './pages/GiftCardsPage'
+import FormsPage from './pages/FormsPage'
+import ExpensesPage from './pages/ExpensesPage'
+import ReportsPage from './pages/ReportsPage'
+import CampaignsPage from './pages/CampaignsPage'
+import BillingPage from './pages/BillingPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -155,6 +169,20 @@ function AppRoutes() {
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/booking-link" element={<BookingLinkPage />} />
+        <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/invoices" element={<InvoicesPage />} />
+        <Route path="/reviews" element={<ReviewsPage />} />
+        <Route path="/promos" element={<PromosPage />} />
+        <Route path="/loyalty" element={<LoyaltyPage />} />
+        <Route path="/locations" element={<LocationsPage />} />
+        <Route path="/workspace" element={<WorkspacePage />} />
+        <Route path="/waitlist" element={<WaitlistPage />} />
+        <Route path="/gift-cards" element={<GiftCardsPage />} />
+        <Route path="/forms" element={<FormsPage />} />
+        <Route path="/expenses" element={<ExpensesPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/campaigns" element={<CampaignsPage />} />
+        <Route path="/billing" element={<BillingPage />} />
       </Route>
 
       {/* Default redirect */}

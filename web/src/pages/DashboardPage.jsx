@@ -19,6 +19,7 @@ import {
   ArrowRight,
   CheckCircle2,
   XCircle,
+  DollarSign,
   Scissors,
   Stethoscope,
   Briefcase,
@@ -47,39 +48,107 @@ function getGreeting() {
   return 'Good evening'
 }
 
-function getInsights(business, services, staff, todayBookings) {
+function getInsights(business, services, staff, todayBookings, allBookings, customers) {
   const insights = []
+  const sym = { USD: '$', EUR: '€', GBP: '£', CAD: 'C$', AUD: 'A$', INR: '₹' }[business?.currency] || '$'
 
   if (services.length === 0) {
-    insights.push({ iconName: 'Lightbulb', text: 'Add your first service to start taking bookings.' })
-  } else {
-    const avgPrice = services.reduce((sum, s) => sum + (s.price || 0), 0) / services.length
-    insights.push({ iconName: 'BarChart3', text: `Your average service price is $${avgPrice.toFixed(0)}. Consider adding premium options to increase revenue.` })
+    insights.push({ iconName: 'Lightbulb', text: 'Add your first service to start taking bookings.', type: 'setup' })
+    return insights
   }
 
-  if (staff.length === 0) {
-    insights.push({ iconName: 'Users', text: 'Add team members so clients can book with their preferred staff.' })
-  } else if (staff.length < 3) {
-    insights.push({ iconName: 'TrendingUp', text: `You have ${staff.length} team member${staff.length > 1 ? 's' : ''}. Growing your team could help handle more bookings.` })
-  } else {
-    insights.push({ iconName: 'Sparkles', text: `Great team size! With ${staff.length} members, you can handle parallel appointments.` })
+  const today = todayStr()
+  const thisMonth = today.slice(0, 7)
+  const lastMonthDate = new Date()
+  lastMonthDate.setMonth(lastMonthDate.getMonth() - 1)
+  const lastMonth = lastMonthDate.getFullYear() + '-' + String(lastMonthDate.getMonth() + 1).padStart(2, '0')
+
+  const thisMonthBookings = allBookings.filter(b => b.date?.startsWith(thisMonth))
+  const lastMonthBookings = allBookings.filter(b => b.date?.startsWith(lastMonth))
+  const completedThisMonth = thisMonthBookings.filter(b => b.status === 'completed')
+  const completedLastMonth = lastMonthBookings.filter(b => b.status === 'completed')
+
+  const revenueThisMonth = completedThisMonth.reduce((s, b) => {
+    const svc = services.find(sv => sv.id === b.service_id)
+    return s + (svc?.price || 0)
+  }, 0)
+  const revenueLastMonth = completedLastMonth.reduce((s, b) => {
+    const svc = services.find(sv => sv.id === b.service_id)
+    return s + (svc?.price || 0)
+  }, 0)
+
+  if (revenueLastMonth > 0) {
+    const change = ((revenueThisMonth - revenueLastMonth) / revenueLastMonth * 100).toFixed(0)
+    if (change > 0) {
+      insights.push({ iconName: 'TrendingUp', text: `Revenue is up ${change}% this month (${sym}${revenueThisMonth.toLocaleString()} vs ${sym}${revenueLastMonth.toLocaleString()} last month). Keep it up!`, type: 'positive' })
+    } else if (change < -10) {
+      insights.push({ iconName: 'BarChart3', text: `Revenue is down ${Math.abs(change)}% this month. Consider running a promo code or sharing your booking link to attract more customers.`, type: 'warning' })
+    }
+  } else if (revenueThisMonth > 0) {
+    insights.push({ iconName: 'Sparkles', text: `You've earned ${sym}${revenueThisMonth.toLocaleString()} this month from ${completedThisMonth.length} completed bookings!`, type: 'positive' })
   }
 
-  if (services.length > 0) {
-    const mostExpensive = services.reduce((a, b) => (a.price > b.price ? a : b))
-    insights.push({ iconName: 'Star', text: `"${mostExpensive.name}" is your highest-priced service at $${mostExpensive.price}. Promote it to boost revenue.` })
-  }
-
-  if (todayBookings.length === 0 && services.length > 0) {
-    insights.push({ iconName: 'Link2', text: 'Share your booking link with customers to start receiving online appointments.' })
-  } else if (todayBookings.length > 0) {
-    const confirmed = todayBookings.filter(b => b.status === 'confirmed').length
-    if (confirmed > 0) {
-      insights.push({ iconName: 'CalendarCheck', text: `You have ${confirmed} confirmed booking${confirmed > 1 ? 's' : ''} today. Keep your schedule updated!` })
+  const cancelled = allBookings.filter(b => b.status === 'cancelled')
+  if (cancelled.length > 0 && allBookings.length > 5) {
+    const noShowRate = (cancelled.length / allBookings.length * 100).toFixed(0)
+    if (noShowRate > 15) {
+      insights.push({ iconName: 'CalendarCheck', text: `Your cancellation rate is ${noShowRate}%. Consider enabling appointment reminders or requiring deposits to reduce no-shows.`, type: 'warning' })
     }
   }
 
-  return insights
+  if (allBookings.length >= 5) {
+    const hourCounts = {}
+    allBookings.forEach(b => {
+      if (b.time) {
+        const h = parseInt(b.time.split(':')[0])
+        hourCounts[h] = (hourCounts[h] || 0) + 1
+      }
+    })
+    const peakHour = Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0]
+    if (peakHour) {
+      const h = parseInt(peakHour[0])
+      const ampm = h >= 12 ? 'PM' : 'AM'
+      const h12 = h % 12 || 12
+      insights.push({ iconName: 'Star', text: `Peak booking hour: ${h12}:00 ${ampm} with ${peakHour[1]} bookings. Consider adding more staff during this time.`, type: 'insight' })
+    }
+  }
+
+  if (customers.length > 0 && allBookings.length > 3) {
+    const customerBookings = {}
+    allBookings.forEach(b => {
+      if (b.customer_name) customerBookings[b.customer_name] = (customerBookings[b.customer_name] || 0) + 1
+    })
+    const repeats = Object.values(customerBookings).filter(c => c > 1).length
+    const retentionRate = (repeats / customers.length * 100).toFixed(0)
+    insights.push({ iconName: 'Users', text: `Customer retention: ${retentionRate}% of customers have booked more than once. ${retentionRate < 30 ? 'Enable the Loyalty Program to encourage repeat visits.' : 'Great retention rate!'}`, type: retentionRate >= 30 ? 'positive' : 'insight' })
+  }
+
+  if (services.length > 1 && allBookings.length > 3) {
+    const svcCounts = {}
+    allBookings.forEach(b => {
+      const name = b.service_name || services.find(s => s.id === b.service_id)?.name || 'Unknown'
+      svcCounts[name] = (svcCounts[name] || 0) + 1
+    })
+    const sorted = Object.entries(svcCounts).sort((a, b) => b[1] - a[1])
+    if (sorted.length > 0) {
+      insights.push({ iconName: 'Star', text: `"${sorted[0][0]}" is your most popular service with ${sorted[0][1]} bookings. Feature it on your booking page.`, type: 'insight' })
+    }
+  }
+
+  if (staff.length === 0) {
+    insights.push({ iconName: 'Users', text: 'Add team members so clients can book with their preferred staff.', type: 'setup' })
+  }
+
+  if (todayBookings.length === 0 && services.length > 0) {
+    insights.push({ iconName: 'Link2', text: 'Share your booking link with customers to start receiving online appointments.', type: 'setup' })
+  } else if (todayBookings.length > 0) {
+    const confirmed = todayBookings.filter(b => b.status === 'confirmed').length
+    if (confirmed > 0) {
+      insights.push({ iconName: 'CalendarCheck', text: `You have ${confirmed} confirmed booking${confirmed > 1 ? 's' : ''} today. Stay on top of your schedule!`, type: 'positive' })
+    }
+  }
+
+  return insights.slice(0, 5)
 }
 
 function todayStr() {
@@ -126,7 +195,15 @@ export default function DashboardPage() {
 
   const firstName = user?.full_name?.split(' ')[0] || 'there'
   const svcName = (b) => b.service_name || (services.find(s => s.id === b.service_id)?.name) || 'Service'
-  const insights = getInsights(business, services, staff, todayBookings)
+  const insights = getInsights(business, services, staff, todayBookings, allBookings, customers)
+
+  const sym = { USD: '$', EUR: '€', GBP: '£', CAD: 'C$', AUD: 'A$', INR: '₹' }[business?.currency] || '$'
+  const monthRevenue = allBookings
+    .filter(b => b.status === 'completed' && b.date?.startsWith(todayStr().slice(0, 7)))
+    .reduce((s, b) => {
+      const svc = services.find(sv => sv.id === b.service_id)
+      return s + (svc?.price || 0)
+    }, 0)
 
   const recentActivity = allBookings
     .sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')))
@@ -148,22 +225,22 @@ export default function DashboardPage() {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-card-icon">{(() => { const I = industryServiceIcon[business?.industry] || Briefcase; return <I size={22} /> })()}</div>
-          <div className="stat-card-label">Services</div>
-          <div className="stat-card-value">{services.length}</div>
+          <div className="stat-card-icon" style={{ color: 'var(--green)' }}><DollarSign size={22} /></div>
+          <div className="stat-card-label">Revenue This Month</div>
+          <div className="stat-card-value">{sym}{monthRevenue.toLocaleString()}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon"><Users size={22} /></div>
-          <div className="stat-card-label">Staff</div>
-          <div className="stat-card-value">{staff.length}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-icon"><CalendarCheck size={22} /></div>
+          <div className="stat-card-icon" style={{ color: 'var(--accent-bright)' }}><CalendarCheck size={22} /></div>
           <div className="stat-card-label">Today's Bookings</div>
           <div className="stat-card-value">{todayBookings.length}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-icon"><TrendingUp size={22} /></div>
+          <div className="stat-card-icon" style={{ color: 'var(--purple)' }}><UserRound size={22} /></div>
+          <div className="stat-card-label">Total Customers</div>
+          <div className="stat-card-value">{customers.length}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card-icon" style={{ color: 'var(--amber)' }}><TrendingUp size={22} /></div>
           <div className="stat-card-label">Upcoming</div>
           <div className="stat-card-value">{upcomingCount}</div>
         </div>
@@ -176,9 +253,10 @@ export default function DashboardPage() {
         </div>
         {insights.map((insight, i) => {
           const IconComponent = insightIconMap[insight.iconName]
+          const typeColor = { positive: 'var(--green)', warning: 'var(--amber)', insight: 'var(--accent-bright)', setup: 'var(--text-muted)' }[insight.type] || 'var(--accent-bright)'
           return (
             <div key={i} className="ai-insight">
-              <span>{IconComponent ? <IconComponent size={18} /> : null}</span>
+              <span style={{ color: typeColor }}>{IconComponent ? <IconComponent size={18} /> : null}</span>
               <span>{insight.text}</span>
             </div>
           )

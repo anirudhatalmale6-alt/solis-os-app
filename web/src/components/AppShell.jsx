@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
+import { fullSync } from '../lib/cloudSync'
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -20,6 +21,20 @@ import {
   Link2,
   Home,
   GraduationCap,
+  BarChart3,
+  FileText,
+  Star,
+  Tag,
+  Crown,
+  MapPin,
+  Shield,
+  ListOrdered,
+  Gift,
+  ClipboardList,
+  Receipt,
+  FileBarChart,
+  Megaphone,
+  CreditCard,
 } from 'lucide-react'
 
 const industryServiceIcon = {
@@ -33,6 +48,7 @@ const industryServiceIcon = {
 }
 
 const SETTINGS_ITEM = { to: '/settings', icon: Settings, label: 'Settings' }
+const BILLING_ITEM = { to: '/billing', icon: CreditCard, label: 'Billing' }
 
 export default function AppShell() {
   const { user, signOut } = useAuth()
@@ -44,6 +60,7 @@ export default function AppShell() {
     if (!user) return
     dataStore.getBusiness(user.id).then(biz => {
       if (biz?.industry) setIndustry(biz.industry)
+      if (biz?.id) fullSync(biz.id).catch(() => {})
     })
   }, [user])
 
@@ -54,8 +71,11 @@ export default function AppShell() {
       label: 'Main',
       items: [
         { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { to: '/messages', icon: MessageSquare, label: 'AI WhatsApp' },
         { to: '/bookings', icon: CalendarCheck, label: 'Bookings' },
         { to: '/schedule', icon: Clock, label: 'Schedule' },
+        { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+        { to: '/reports', icon: FileBarChart, label: 'Reports' },
       ],
     },
     {
@@ -64,12 +84,22 @@ export default function AppShell() {
         { to: '/services', icon: ServiceIcon, label: 'Services' },
         { to: '/staff', icon: Users, label: 'Staff' },
         { to: '/customers', icon: UserRound, label: 'Customers' },
+        { to: '/invoices', icon: FileText, label: 'Invoices' },
+        { to: '/expenses', icon: Receipt, label: 'Expenses' },
+        { to: '/locations', icon: MapPin, label: 'Locations' },
+        { to: '/workspace', icon: Shield, label: 'Workspace' },
+        { to: '/waitlist', icon: ListOrdered, label: 'Waitlist' },
+        { to: '/forms', icon: ClipboardList, label: 'Forms' },
       ],
     },
     {
-      label: 'Communication',
+      label: 'Marketing',
       items: [
-        { to: '/messages', icon: MessageSquare, label: 'Messages' },
+        { to: '/campaigns', icon: Megaphone, label: 'Campaigns' },
+        { to: '/reviews', icon: Star, label: 'Reviews' },
+        { to: '/promos', icon: Tag, label: 'Promo Codes' },
+        { to: '/loyalty', icon: Crown, label: 'Loyalty Program' },
+        { to: '/gift-cards', icon: Gift, label: 'Gift Cards' },
       ],
     },
     {
@@ -135,7 +165,7 @@ export default function AppShell() {
         </button>
 
         <div className="sidebar-logo">
-          <img src="/logo-full.png" alt="Solis OS" style={{ height: '60px', width: 'auto' }} />
+          <img src="/logo-full.png" alt="Solis OS" style={{ height: '44px', width: 'auto' }} />
         </div>
 
         <nav className="sidebar-nav">
@@ -148,6 +178,7 @@ export default function AppShell() {
           ))}
 
           <div className="nav-divider" />
+          {renderNavItem(BILLING_ITEM)}
           {renderNavItem(SETTINGS_ITEM)}
         </nav>
 
