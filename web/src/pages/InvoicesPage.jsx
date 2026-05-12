@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import {
   FileText, Plus, Send, CheckCircle2, Clock, X,
   Download, Eye, DollarSign, Printer, Copy, Check,
-  MessageCircle, Mail, Image, Percent, ChevronDown,
+  MessageCircle, Mail, Image, Percent, ChevronDown, Pencil,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
@@ -50,7 +50,8 @@ export default function InvoicesPage() {
   const [businessLogo, setBusinessLogo] = useState('')
   const printRef = useRef(null)
 
-  // Create form
+  // Create/Edit form
+  const [editingInvoice, setEditingInvoice] = useState(null)
   const [selCustomer, setSelCustomer] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
@@ -165,8 +166,56 @@ export default function InvoicesPage() {
     reader.readAsDataURL(file)
   }
 
+  const handleEdit = (inv) => {
+    setEditingInvoice(inv)
+    setSelCustomer(inv.customer_name || '')
+    setCustomerEmail(inv.customer_email || '')
+    setCustomerPhone(inv.customer_phone || '')
+    setSelBooking(inv.booking_id || '')
+    setLineItems(inv.items?.length > 0 ? inv.items.map(i => ({ ...i })) : [{ description: '', qty: 1, price: 0 }])
+    setNotes(inv.notes || '')
+    setDueDate(inv.due_date || dueIn30())
+    setTaxRate(inv.tax_rate ?? 10)
+    setTaxEnabled(inv.tax_enabled ?? true)
+    setDiscount(inv.discount || 0)
+    setShowCreate(true)
+    setViewInvoice(null)
+  }
+
   const handleCreate = () => {
     if (!selCustomer || lineItems.length === 0) return
+
+    if (editingInvoice) {
+      const updated = {
+        ...editingInvoice,
+        customer_name: selCustomer,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+        booking_id: selBooking || null,
+        items: lineItems,
+        subtotal,
+        tax_enabled: taxEnabled,
+        tax_rate: taxRate,
+        tax_amount: taxAmount,
+        discount,
+        discount_amount: discountAmount,
+        total,
+        notes,
+        due_date: dueDate || null,
+        business_name: business?.name || '',
+        business_email: business?.email || '',
+        business_phone: business?.phone || '',
+        business_address: business?.address || '',
+        logo: businessLogo || '',
+      }
+      saveInvoices(invoices.map(inv => inv.id === editingInvoice.id ? updated : inv))
+      setShowCreate(false)
+      setViewInvoice(updated)
+      setEditingInvoice(null)
+      resetForm()
+      return
+    }
+
     const inv = {
       id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
       number: generateInvoiceNumber(),
@@ -598,7 +647,7 @@ export default function InvoicesPage() {
             <Image size={14} /> {businessLogo ? 'Change Logo' : 'Upload Logo'}
             <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
           </label>
-          <button className="btn btn-primary btn-sm" onClick={() => { setShowCreate(true); resetForm() }}>
+          <button className="btn btn-primary btn-sm" onClick={() => { setEditingInvoice(null); setShowCreate(true); resetForm() }}>
             <Plus size={16} style={{ marginRight: '6px' }} /> New Invoice
           </button>
         </div>
@@ -641,8 +690,8 @@ export default function InvoicesPage() {
       {showCreate && (
         <div className="card" style={{ marginBottom: '20px', border: '1px solid var(--accent)', boxShadow: '0 0 20px rgba(59,130,246,0.1)' }}>
           <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>New Invoice</span>
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowCreate(false)}><X size={18} /></button>
+            <span>{editingInvoice ? `Edit Invoice ${editingInvoice.number}` : 'New Invoice'}</span>
+            <button className="btn btn-ghost btn-sm" onClick={() => { setShowCreate(false); setEditingInvoice(null); resetForm() }}><X size={18} /></button>
           </div>
 
           {/* From booking or manual */}
@@ -739,7 +788,7 @@ export default function InvoicesPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ fontWeight: 700, fontSize: '22px', fontFamily: 'var(--font-display)', color: 'var(--text)' }}>{sym}{total.toFixed(2)}</div>
               <button className="btn btn-primary btn-sm" onClick={handleCreate} disabled={!selCustomer || lineItems.every(i => !i.description)}>
-                Create Invoice
+                {editingInvoice ? 'Update Invoice' : 'Create Invoice'}
               </button>
             </div>
           </div>
@@ -785,6 +834,9 @@ export default function InvoicesPage() {
               </div>
               <button className="btn btn-secondary btn-sm" onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <Printer size={14} /> Print
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={() => handleEdit(viewInvoice)} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Pencil size={14} /> Edit
               </button>
               {viewInvoice.status !== 'paid' && (
                 <button className="btn btn-sm" style={{ background: 'var(--green)', color: '#fff', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => markStatus(viewInvoice.id, 'paid')}>
@@ -843,6 +895,7 @@ export default function InvoicesPage() {
                   <td style={{ textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                       <button className="btn btn-ghost btn-sm" onClick={() => { setViewInvoice(inv); setShowSendMenu(null) }} title="View"><Eye size={14} /></button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(inv)} title="Edit"><Pencil size={14} /></button>
                       <button className="btn btn-ghost btn-sm" onClick={() => { setViewInvoice(inv); setShowSendMenu(inv.id) }} title="Send"><Send size={14} /></button>
                       {inv.status !== 'paid' && (
                         <button className="btn btn-ghost btn-sm" onClick={() => markStatus(inv.id, 'paid')} title="Mark Paid" style={{ color: 'var(--green)' }}><CheckCircle2 size={14} /></button>
