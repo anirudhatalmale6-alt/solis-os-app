@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Gift, Plus, X, CreditCard, DollarSign, Copy, Check, Eye, Trash2, ChevronDown, ChevronUp, Calendar, Send, Percent, ShoppingBag } from 'lucide-react'
+import { Gift, Plus, X, CreditCard, DollarSign, Copy, Check, Eye, Trash2, ChevronDown, ChevronUp, Calendar, Send, Percent, ShoppingBag, MessageCircle } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
 import { syncedSet } from '../lib/cloudSync'
@@ -103,6 +103,7 @@ export default function GiftCardsPage() {
   const [isCustom, setIsCustom] = useState(false)
   const [recipientName, setRecipientName] = useState('')
   const [recipientEmail, setRecipientEmail] = useState('')
+  const [recipientPhone, setRecipientPhone] = useState('')
   const [senderName, setSenderName] = useState('')
   const [message, setMessage] = useState('')
   const [expiryMonths, setExpiryMonths] = useState(12)
@@ -142,6 +143,7 @@ export default function GiftCardsPage() {
     setIsCustom(false)
     setRecipientName('')
     setRecipientEmail('')
+    setRecipientPhone('')
     setSenderName('')
     setMessage('')
     setExpiryMonths(12)
@@ -158,6 +160,7 @@ export default function GiftCardsPage() {
       balance: effectiveAmount,
       recipient_name: recipientName.trim(),
       recipient_email: recipientEmail.trim(),
+      recipient_phone: recipientPhone.trim(),
       sender_name: senderName.trim(),
       message: message.trim(),
       expiry_date: computeExpiry(expiryMonths),
@@ -195,6 +198,27 @@ export default function GiftCardsPage() {
     navigator.clipboard.writeText(code)
     setCopied(code)
     setTimeout(() => setCopied(null), 2000)
+  }
+
+  const sendGiftCardWhatsApp = (card) => {
+    const phone = (card.recipient_phone || '').replace(/[^0-9]/g, '')
+    const text = [
+      `🎁 You've received a Gift Card from ${bizName}!`,
+      '',
+      `Amount: ${sym}${card.amount}`,
+      `Code: ${card.code}`,
+      card.expiry_date ? `Expires: ${formatDate(card.expiry_date)}` : '',
+      card.sender_name ? `From: ${card.sender_name}` : '',
+      card.message ? `\n"${card.message}"` : '',
+      '',
+      `Show this code when booking to redeem your gift card.`,
+    ].filter(Boolean).join('\n')
+
+    if (phone) {
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank')
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+    }
   }
 
   const cardsWithStatus = useMemo(() => cards.map(c => ({ ...c, computedStatus: getStatus(c) })), [cards])
@@ -275,7 +299,7 @@ export default function GiftCardsPage() {
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
                 <div className="form-group">
                   <label className="form-label">Recipient Name</label>
                   <input type="text" className="form-input" value={recipientName} onChange={e => setRecipientName(e.target.value)} placeholder="Jane Smith" />
@@ -283,6 +307,10 @@ export default function GiftCardsPage() {
                 <div className="form-group">
                   <label className="form-label">Recipient Email</label>
                   <input type="email" className="form-input" value={recipientEmail} onChange={e => setRecipientEmail(e.target.value)} placeholder="jane@email.com" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Recipient Phone (WhatsApp)</label>
+                  <input type="tel" className="form-input" value={recipientPhone} onChange={e => setRecipientPhone(e.target.value)} placeholder="+61 400 123 456" />
                 </div>
               </div>
 
@@ -426,6 +454,9 @@ export default function GiftCardsPage() {
                   <div style={{ display: 'flex', gap: '4px' }}>
                     <button className="btn btn-ghost btn-sm" onClick={() => copyCode(c.code)} title="Copy code">
                       {copied === c.code ? <Check size={14} style={{ color: 'var(--green)' }} /> : <Copy size={14} />}
+                    </button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => sendGiftCardWhatsApp(c)} title="Send via WhatsApp" style={{ color: '#25D366' }}>
+                      <MessageCircle size={14} />
                     </button>
                     <button className="btn btn-ghost btn-sm" onClick={() => setViewCard(viewCard === c.id ? null : c.id)} title="View details">
                       <Eye size={14} />
