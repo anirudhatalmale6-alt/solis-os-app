@@ -37,6 +37,7 @@ import {
   FileBarChart,
   Megaphone,
   CreditCard,
+  PhoneIncoming,
 } from 'lucide-react'
 
 const industryServiceIcon = {
@@ -78,6 +79,7 @@ export default function AppShell() {
         { to: '/bookings', icon: CalendarCheck, label: 'Bookings' },
         { to: '/schedule', icon: Clock, label: 'Schedule' },
         { to: '/signups', icon: UserPlus, label: 'Signups' },
+        { to: '/leads', icon: PhoneIncoming, label: 'Website Leads' },
         { to: '/analytics', icon: BarChart3, label: 'Analytics' },
         { to: '/reports', icon: FileBarChart, label: 'Reports' },
       ],

@@ -35,6 +35,7 @@ import CampaignsPage from './pages/CampaignsPage'
 import BillingPage from './pages/BillingPage'
 import WhatsAppChatsPage from './pages/WhatsAppChatsPage'
 import SignupsPage from './pages/SignupsPage'
+import LeadsPage from './pages/LeadsPage'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -172,6 +173,7 @@ function AppRoutes() {
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/whatsapp-chats" element={<WhatsAppChatsPage />} />
         <Route path="/signups" element={<SignupsPage />} />
+        <Route path="/leads" element={<LeadsPage />} />
         <Route path="/booking-link" element={<BookingLinkPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/invoices" element={<InvoicesPage />} />
