@@ -50,6 +50,7 @@ const industryServiceIcon = {
   other: Briefcase,
 }
 
+const ADMIN_EMAIL = 'bbay.net@gmail.com'
 const SETTINGS_ITEM = { to: '/settings', icon: Settings, label: 'Settings' }
 const BILLING_ITEM = { to: '/billing', icon: CreditCard, label: 'Billing' }
 
@@ -78,8 +79,10 @@ export default function AppShell() {
         { to: '/whatsapp-chats', icon: MessageCircle, label: 'WhatsApp Chats' },
         { to: '/bookings', icon: CalendarCheck, label: 'Bookings' },
         { to: '/schedule', icon: Clock, label: 'Schedule' },
-        { to: '/signups', icon: UserPlus, label: 'Signups' },
-        { to: '/leads', icon: PhoneIncoming, label: 'Website Leads' },
+        ...(user?.email === ADMIN_EMAIL ? [
+          { to: '/signups', icon: UserPlus, label: 'Signups' },
+          { to: '/leads', icon: PhoneIncoming, label: 'Website Leads' },
+        ] : []),
         { to: '/analytics', icon: BarChart3, label: 'Analytics' },
         { to: '/reports', icon: FileBarChart, label: 'Reports' },
       ],

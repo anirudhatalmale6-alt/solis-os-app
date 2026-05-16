@@ -37,6 +37,15 @@ import WhatsAppChatsPage from './pages/WhatsAppChatsPage'
 import SignupsPage from './pages/SignupsPage'
 import LeadsPage from './pages/LeadsPage'
 
+const ADMIN_EMAIL = 'bbay.net@gmail.com'
+
+function AdminRoute({ children }) {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user || user.email !== ADMIN_EMAIL) return <Navigate to="/dashboard" replace />
+  return children
+}
+
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
   const [business, setBusiness] = useState(undefined)
@@ -172,8 +181,8 @@ function AppRoutes() {
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/whatsapp-chats" element={<WhatsAppChatsPage />} />
-        <Route path="/signups" element={<SignupsPage />} />
-        <Route path="/leads" element={<LeadsPage />} />
+        <Route path="/signups" element={<AdminRoute><SignupsPage /></AdminRoute>} />
+        <Route path="/leads" element={<AdminRoute><LeadsPage /></AdminRoute>} />
         <Route path="/booking-link" element={<BookingLinkPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/invoices" element={<InvoicesPage />} />
