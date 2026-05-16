@@ -10,7 +10,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 
-const API_BASE = 'https://chatbot.veltrixtv.com'
+const API_BASE = 'https://api.solis-os.com'
 
 function timeAgo(dateStr) {
   if (!dateStr) return ''

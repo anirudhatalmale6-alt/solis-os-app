@@ -33,7 +33,7 @@ function dueIn30() {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
 }
 
-const API_BASE = 'https://chatbot.veltrixtv.com'
+const API_BASE = 'https://api.solis-os.com'
 
 export default function InvoicesPage() {
   const { user } = useAuth()

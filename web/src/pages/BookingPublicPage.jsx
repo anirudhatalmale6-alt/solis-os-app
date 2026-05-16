@@ -60,7 +60,7 @@ function formatTime12(time24) {
   return `${h12}:${String(m).padStart(2, '0')} ${ampm}`
 }
 
-const API_BASE = 'https://chatbot.veltrixtv.com'
+const API_BASE = 'https://api.solis-os.com'
 
 export default function BookingPublicPage() {
   const { businessId } = useParams()

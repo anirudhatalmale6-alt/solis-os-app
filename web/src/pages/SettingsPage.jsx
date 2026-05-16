@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
 import { syncedSet } from '../lib/cloudSync'
 
-const API_BASE = 'https://chatbot.veltrixtv.com'
+const API_BASE = 'https://api.solis-os.com'
 const WA_API = import.meta.env.VITE_WHATSAPP_API_URL || 'https://wa.solis-os.com'
 
 const CURRENCIES = [
