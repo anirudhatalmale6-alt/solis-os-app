@@ -36,6 +36,7 @@ import BillingPage from './pages/BillingPage'
 import WhatsAppChatsPage from './pages/WhatsAppChatsPage'
 import SignupsPage from './pages/SignupsPage'
 import LeadsPage from './pages/LeadsPage'
+import WhatsAppAssistantPage from './pages/WhatsAppAssistantPage'
 
 const ADMIN_EMAIL = 'bbay.net@gmail.com'
 
@@ -179,6 +180,7 @@ function AppRoutes() {
         <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/bookings" element={<BookingsPage />} />
         <Route path="/customers" element={<CustomersPage />} />
+        <Route path="/whatsapp-assistant" element={<WhatsAppAssistantPage />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/whatsapp-chats" element={<WhatsAppChatsPage />} />
         <Route path="/signups" element={<AdminRoute><SignupsPage /></AdminRoute>} />

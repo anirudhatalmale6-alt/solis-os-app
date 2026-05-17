@@ -38,6 +38,7 @@ import {
   Megaphone,
   CreditCard,
   PhoneIncoming,
+  Bot,
 } from 'lucide-react'
 
 const industryServiceIcon = {
@@ -75,6 +76,7 @@ export default function AppShell() {
       label: 'Main',
       items: [
         { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { to: '/whatsapp-assistant', icon: Bot, label: 'AI WhatsApp Assistant' },
         { to: '/messages', icon: MessageSquare, label: 'AI WhatsApp' },
         { to: '/whatsapp-chats', icon: MessageCircle, label: 'WhatsApp Chats' },
         { to: '/bookings', icon: CalendarCheck, label: 'Bookings' },
