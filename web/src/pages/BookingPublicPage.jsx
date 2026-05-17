@@ -207,13 +207,13 @@ export default function BookingPublicPage() {
       const result = await dataStore.addBooking({
         business_id: business.id,
         service_id: selectedService.id,
-        service_name: selectedService.name,
         customer_name: customerName,
         customer_phone: customerPhone,
+        customer_email: customerEmail,
         date: selectedDate,
         time: selectedTime,
         duration: selectedService.duration || 30,
-        notes: '',
+        notes: `${selectedService.name} - $${selectedService.price || 0}`,
         status: 'confirmed',
       })
       if (result.error) {

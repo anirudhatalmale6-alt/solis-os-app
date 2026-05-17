@@ -79,13 +79,13 @@ export default function BookingsPage() {
       await dataStore.addBooking({
         business_id: business.id,
         service_id: newService,
-        service_name: svc?.name || '',
         customer_name: newCustomer,
         customer_phone: newPhone,
         date,
         time: newTime,
         duration: svc?.duration || 30,
-        recurring: recurring !== 'none' ? recurring : undefined,
+        notes: `${svc?.name || ''} - $${svc?.price || 0}`,
+        status: 'confirmed',
       })
     }
     setShowNew(false)
