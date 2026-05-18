@@ -146,7 +146,7 @@ export default function ServicesPage() {
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay" onClick={() => { setShowModal(false); resetForm() }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h2 className="modal-title">{editing ? 'Edit Service' : 'Add Service'}</h2>
 
@@ -195,7 +195,7 @@ export default function ServicesPage() {
             )}
 
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
+              <button className="btn btn-secondary" onClick={() => { setShowModal(false); resetForm() }}>
                 Cancel
               </button>
               <button className="btn btn-primary" onClick={handleSave}>
