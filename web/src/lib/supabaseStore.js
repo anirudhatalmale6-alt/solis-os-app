@@ -193,6 +193,12 @@ export const supabaseStore = {
     return this.updateBooking(id, { status: 'cancelled' })
   },
 
+  async deleteBooking(id) {
+    const { error } = await supabase.from('bookings').delete().eq('id', id)
+    if (error) return { error: { message: error.message } }
+    return { data: true, error: null }
+  },
+
   async getBookingsByDate(businessId, date) {
     const { data } = await supabase.from('bookings').select('*').eq('business_id', businessId).eq('date', date).order('time', { ascending: true })
     return data || []

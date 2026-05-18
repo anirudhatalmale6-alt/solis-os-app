@@ -226,6 +226,14 @@ export const store = {
     return this.updateBooking(id, { status: 'cancelled' })
   },
 
+  deleteBooking(id) {
+    const data = load()
+    if (!data.bookings) data.bookings = []
+    data.bookings = data.bookings.filter(b => b.id !== id)
+    save(data)
+    return { data: true, error: null }
+  },
+
   getBookingsByDate(businessId, date) {
     const data = load()
     if (!data.bookings) data.bookings = []

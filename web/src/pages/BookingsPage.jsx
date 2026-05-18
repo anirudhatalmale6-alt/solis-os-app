@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CalendarCheck, CheckCircle2, ChevronLeft, ChevronRight, Plus, X, Repeat } from 'lucide-react'
+import { CalendarCheck, CheckCircle2, ChevronLeft, ChevronRight, Plus, X, Repeat, Trash2 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
 
@@ -106,6 +106,12 @@ export default function BookingsPage() {
 
   const handleCancel = async (id) => {
     await dataStore.cancelBooking(id)
+    await loadData()
+  }
+
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this booking permanently?')) return
+    await dataStore.deleteBooking(id)
     await loadData()
   }
 
@@ -265,16 +271,21 @@ export default function BookingsPage() {
             <span className={`badge ${statusBadge(booking.status)}`}>
               {booking.status}
             </span>
-            {booking.status === 'confirmed' && (
-              <div className="booking-card-actions">
-                <button className="btn btn-secondary btn-sm" onClick={() => handleComplete(booking.id)}>
-                  Complete
-                </button>
-                <button className="btn btn-danger btn-sm" onClick={() => handleCancel(booking.id)}>
-                  Cancel
-                </button>
-              </div>
-            )}
+            <div className="booking-card-actions">
+              {booking.status === 'confirmed' && (
+                <>
+                  <button className="btn btn-secondary btn-sm" onClick={() => handleComplete(booking.id)}>
+                    Complete
+                  </button>
+                  <button className="btn btn-danger btn-sm" onClick={() => handleCancel(booking.id)}>
+                    Cancel
+                  </button>
+                </>
+              )}
+              <button className="btn btn-danger btn-sm" onClick={() => handleDelete(booking.id)} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Trash2 size={14} /> Delete
+              </button>
+            </div>
           </div>
         ))
       )}
