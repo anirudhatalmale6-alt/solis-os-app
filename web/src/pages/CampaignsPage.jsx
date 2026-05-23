@@ -1,12 +1,15 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import {
-  Megaphone, Send, Users, Clock, Plus, X, Mail, MessageCircle, Smartphone,
+  Megaphone, Send, Users, Clock, Plus, X, MessageCircle,
   Copy, Trash2, BarChart3, Eye, Edit, Calendar, Zap, Heart, Gift, Sparkles,
-  ChevronLeft, Search, Filter, ArrowRight
+  ChevronLeft, Search, ArrowRight, AlertCircle, CheckCircle, Loader, Wifi, WifiOff
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
 import { syncedSet } from '../lib/cloudSync'
+
+const WA_API = import.meta.env.VITE_WHATSAPP_API_URL || 'https://wa.solis-os.com'
+const SEND_DELAY_MS = 3000
 
 function uid() {
   try { return crypto.randomUUID() } catch {}
@@ -54,9 +57,7 @@ function relativeTime(dateStr) {
 }
 
 const CAMPAIGN_TYPES = [
-  { value: 'whatsapp', label: 'WhatsApp Message', icon: MessageCircle, color: '#25D366', bg: 'rgba(37,211,102,0.1)' },
-  { value: 'sms', label: 'SMS', icon: Smartphone, color: 'var(--accent-bright)', bg: 'rgba(59,130,246,0.1)' },
-  { value: 'email', label: 'Email', icon: Mail, color: 'var(--purple)', bg: 'rgba(167,139,250,0.1)' },
+  { value: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, color: '#25D366', bg: 'rgba(37,211,102,0.1)' },
 ]
 
 const AUDIENCE_OPTIONS = [
@@ -74,11 +75,7 @@ const TEMPLATES = [
     icon: Heart,
     color: 'var(--rose)',
     bg: 'rgba(244,63,94,0.1)',
-    messages: {
-      whatsapp: "Hey {name}! We haven't seen you in a while and we miss you. Come back and enjoy 15% off your next visit. Book now and let us take care of you! Reply BOOK to schedule.",
-      sms: "Hi {name}! We miss you! Come back & enjoy 15% off your next visit. Book now: {link}",
-      email: "Subject: We Miss You, {name}!\n\nHi {name},\n\nIt's been a while since your last visit, and we wanted you to know we miss having you here!\n\nAs a special welcome back, we're offering you 15% off your next appointment. Don't wait too long -- this offer expires in 7 days.\n\nBook your appointment today and let us take care of you.\n\nWarm regards,\n{business}",
-    },
+    message: "Hey {name}! We haven't seen you in a while and we miss you. Come back and enjoy 15% off your next visit. Book now and let us take care of you! Reply BOOK to schedule.",
   },
   {
     id: 'promotion',
@@ -87,11 +84,7 @@ const TEMPLATES = [
     icon: Sparkles,
     color: 'var(--amber)',
     bg: 'rgba(245,158,11,0.1)',
-    messages: {
-      whatsapp: "Hi {name}! Exclusive offer just for you: Get 20% off any service this week only! Don't miss out. Tap here to book: {link}",
-      sms: "{name}, EXCLUSIVE: 20% off any service this week only! Book now: {link}",
-      email: "Subject: A Special Offer Just for You, {name}\n\nHi {name},\n\nWe have something special just for you!\n\nFor a limited time, enjoy 20% off any service. Whether it's your favorite treatment or something new you've been wanting to try, now's the perfect time.\n\nThis offer is exclusive to our valued customers and expires at the end of this week.\n\nBook now and treat yourself!\n\nBest,\n{business}",
-    },
+    message: "Hi {name}! Exclusive offer just for you: Get 20% off any service this week only! Don't miss out. Tap here to book: {link}",
   },
   {
     id: 'rebooking',
@@ -100,11 +93,7 @@ const TEMPLATES = [
     icon: Calendar,
     color: 'var(--green)',
     bg: 'rgba(34,197,94,0.1)',
-    messages: {
-      whatsapp: "Hi {name}! Ready for your next appointment? Book again this month and save 10%! We'd love to see you. Schedule here: {link}",
-      sms: "Hi {name}! Book again this month & save 10%. Schedule now: {link}",
-      email: "Subject: Time to Rebook, {name}!\n\nHi {name},\n\nIt might be time for your next appointment! Book again this month and we'll give you 10% off as a thank you for being a loyal customer.\n\nYour last visit was a great one, and we'd love to keep the momentum going.\n\nSchedule your next appointment today!\n\nSee you soon,\n{business}",
-    },
+    message: "Hi {name}! Ready for your next appointment? Book again this month and save 10%! We'd love to see you. Schedule here: {link}",
   },
   {
     id: 'holiday',
@@ -113,17 +102,14 @@ const TEMPLATES = [
     icon: Gift,
     color: 'var(--teal)',
     bg: 'rgba(20,184,166,0.1)',
-    messages: {
-      whatsapp: "Season's greetings, {name}! Celebrate with our holiday special: 25% off all services + a free gift with every booking. Limited spots available! Book now: {link}",
-      sms: "Happy holidays {name}! 25% off + free gift with booking. Limited spots! Book: {link}",
-      email: "Subject: Holiday Special -- 25% Off + Free Gift!\n\nHi {name},\n\nThe holidays are here, and we're celebrating with something special for you!\n\nEnjoy 25% off all services PLUS a complimentary gift with every booking. It's our way of saying thank you for being part of our community.\n\nSpots are filling up fast, so don't wait!\n\nWishing you a wonderful holiday season,\n{business}",
-    },
+    message: "Season's greetings, {name}! Celebrate with our holiday special: 25% off all services + a free gift with every booking. Limited spots available! Book now: {link}",
   },
 ]
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', badge: 'badge', color: 'var(--text-muted)', bg: 'rgba(150,150,150,0.12)' },
   scheduled: { label: 'Scheduled', badge: 'badge badge-amber' },
+  sending: { label: 'Sending...', badge: 'badge badge-blue' },
   active: { label: 'Active', badge: 'badge badge-blue' },
   sent: { label: 'Sent', badge: 'badge badge-green' },
 }
@@ -162,6 +148,13 @@ export default function CampaignsPage() {
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
 
+  // WhatsApp sending state
+  const [waStatus, setWaStatus] = useState(null) // null | 'checking' | 'connected' | 'disconnected'
+  const [sending, setSending] = useState(false)
+  const [sendProgress, setSendProgress] = useState({ current: 0, total: 0, failed: 0 })
+  const [sendError, setSendError] = useState(null)
+  const abortRef = useRef(false)
+
   // Form state
   const [formName, setFormName] = useState('')
   const [formType, setFormType] = useState('whatsapp')
@@ -196,6 +189,131 @@ export default function CampaignsPage() {
     }
   }
 
+  const checkWhatsAppStatus = useCallback(async () => {
+    if (!business) return false
+    setWaStatus('checking')
+    try {
+      const resp = await fetch(`${WA_API}/api/whatsapp/status/${business.id}`)
+      if (resp.ok) {
+        const data = await resp.json()
+        const connected = data.status === 'connected'
+        setWaStatus(connected ? 'connected' : 'disconnected')
+        return connected
+      }
+    } catch {}
+    setWaStatus('disconnected')
+    return false
+  }, [business])
+
+  const getFilteredCustomers = useCallback((audience) => {
+    if (audience === 'all') return customers.filter(c => c.phone)
+    if (audience === 'recent') {
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const recentNames = new Set()
+      bookings.forEach(b => {
+        if (b.customer_name && new Date(b.date) >= thirtyDaysAgo) {
+          recentNames.add(b.customer_name.toLowerCase())
+        }
+      })
+      return customers.filter(c => c.phone && recentNames.has(c.name.toLowerCase()))
+    }
+    if (audience === 'inactive') {
+      const sixtyDaysAgo = new Date()
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
+      const activeNames = new Set()
+      bookings.forEach(b => {
+        if (b.customer_name && new Date(b.date) >= sixtyDaysAgo) {
+          activeNames.add(b.customer_name.toLowerCase())
+        }
+      })
+      return customers.filter(c => c.phone && !activeNames.has(c.name.toLowerCase()))
+    }
+    return customers.filter(c => c.phone)
+  }, [customers, bookings])
+
+  const personalizeMessage = useCallback((template, customer) => {
+    const bizName = business?.name || 'Our Business'
+    const slug = business?.slug || ''
+    const bookingLink = slug ? `https://app.solis-os.com/book/${slug}` : 'https://app.solis-os.com'
+    return template
+      .replace(/\{name\}/g, customer.name || 'there')
+      .replace(/\{business\}/g, bizName)
+      .replace(/\{link\}/g, bookingLink)
+  }, [business])
+
+  const cleanPhone = (phone) => {
+    if (!phone) return null
+    const digits = phone.replace(/\D/g, '')
+    if (digits.length < 7) return null
+    return digits
+  }
+
+  const sendCampaignMessages = async (campaign) => {
+    const connected = await checkWhatsAppStatus()
+    if (!connected) {
+      setSendError('WhatsApp is not connected. Please connect your WhatsApp in the WhatsApp Assistant page first.')
+      return null
+    }
+
+    const targetCustomers = getFilteredCustomers(campaign.audience)
+    if (targetCustomers.length === 0) {
+      setSendError('No customers with phone numbers found for this audience.')
+      return null
+    }
+
+    setSending(true)
+    setSendError(null)
+    abortRef.current = false
+    const total = targetCustomers.length
+    setSendProgress({ current: 0, total, failed: 0 })
+
+    let sentCount = 0
+    let failedCount = 0
+
+    for (let i = 0; i < targetCustomers.length; i++) {
+      if (abortRef.current) break
+
+      const customer = targetCustomers[i]
+      const phone = cleanPhone(customer.phone)
+      if (!phone) {
+        failedCount++
+        setSendProgress({ current: i + 1, total, failed: failedCount })
+        continue
+      }
+
+      const message = personalizeMessage(campaign.message, customer)
+
+      try {
+        const resp = await fetch(`${WA_API}/api/whatsapp/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            business_id: business.id,
+            phone,
+            message,
+          }),
+        })
+        if (resp.ok) {
+          sentCount++
+        } else {
+          failedCount++
+        }
+      } catch {
+        failedCount++
+      }
+
+      setSendProgress({ current: i + 1, total, failed: failedCount })
+
+      if (i < targetCustomers.length - 1 && !abortRef.current) {
+        await new Promise(r => setTimeout(r, SEND_DELAY_MS))
+      }
+    }
+
+    setSending(false)
+    return { sent: sentCount, failed: failedCount, total }
+  }
+
   const getAudienceCount = (audience) => {
     if (audience === 'all') return customers.length
     if (audience === 'recent') {
@@ -224,6 +342,12 @@ export default function CampaignsPage() {
     return customers.length
   }
 
+  useEffect(() => {
+    if (activeStep === 3 && formSchedule === 'now' && waStatus === null) {
+      checkWhatsAppStatus()
+    }
+  }, [activeStep, formSchedule, waStatus, checkWhatsAppStatus])
+
   const resetForm = () => {
     setFormName('')
     setFormType('whatsapp')
@@ -235,6 +359,8 @@ export default function CampaignsPage() {
     setEditing(null)
     setShowTemplates(false)
     setActiveStep(1)
+    setWaStatus(null)
+    setSendError(null)
   }
 
   const openNew = () => {
@@ -256,7 +382,7 @@ export default function CampaignsPage() {
     setShowModal(true)
   }
 
-  const handleSave = (asDraft = false) => {
+  const handleSave = async (asDraft = false) => {
     if (!formName.trim() || !formMessage.trim()) return
     const audienceCount = getAudienceCount(formAudience)
     const now = nowISOStr()
@@ -264,7 +390,7 @@ export default function CampaignsPage() {
     let status = 'draft'
     if (!asDraft) {
       if (formSchedule === 'now') {
-        status = 'sent'
+        status = 'sending'
       } else {
         status = 'scheduled'
       }
@@ -283,14 +409,8 @@ export default function CampaignsPage() {
       status,
       created_at: editing ? editing.created_at : now,
       updated_at: now,
-      sent_at: status === 'sent' ? now : (editing ? editing.sent_at : null),
-      stats: editing ? editing.stats : {
-        sent: status === 'sent' ? audienceCount : 0,
-        delivered: status === 'sent' ? Math.floor(audienceCount * 0.94) : 0,
-        read: status === 'sent' ? Math.floor(audienceCount * 0.67) : 0,
-        clicked: status === 'sent' ? Math.floor(audienceCount * 0.23) : 0,
-        responded: status === 'sent' ? Math.floor(audienceCount * 0.08) : 0,
-      },
+      sent_at: null,
+      stats: editing ? editing.stats : { sent: 0, delivered: 0, read: 0, clicked: 0, responded: 0 },
     }
 
     let updated
@@ -302,6 +422,31 @@ export default function CampaignsPage() {
     saveCampaigns(updated)
     setShowModal(false)
     resetForm()
+
+    if (status === 'sending') {
+      const result = await sendCampaignMessages(campaign)
+      if (result) {
+        campaign.status = 'sent'
+        campaign.sent_at = nowISOStr()
+        campaign.stats = {
+          sent: result.sent,
+          delivered: result.sent,
+          read: 0,
+          clicked: 0,
+          responded: 0,
+          failed: result.failed,
+        }
+        campaign.audience_count = result.total
+      } else {
+        campaign.status = 'draft'
+      }
+      campaign.updated_at = nowISOStr()
+      const finalList = (editing
+        ? updated.map(c => c.id === campaign.id ? campaign : c)
+        : updated.map(c => c.id === campaign.id ? campaign : c)
+      )
+      saveCampaigns(finalList)
+    }
   }
 
   const handleDuplicate = (campaign) => {
@@ -325,7 +470,7 @@ export default function CampaignsPage() {
   }
 
   const applyTemplate = (template) => {
-    setFormMessage(template.messages[formType] || template.messages.whatsapp)
+    setFormMessage(template.message)
     if (!formName.trim()) {
       setFormName(template.name)
     }
@@ -364,7 +509,7 @@ export default function CampaignsPage() {
   if (viewCampaign) {
     const c = viewCampaign
     const typeCfg = CAMPAIGN_TYPES.find(t => t.value === c.type) || CAMPAIGN_TYPES[0]
-    const stats = c.stats || { sent: 0, delivered: 0, read: 0, clicked: 0, responded: 0 }
+    const stats = c.stats || { sent: 0, delivered: 0, read: 0, clicked: 0, responded: 0, failed: 0 }
     const deliveryRate = stats.sent > 0 ? ((stats.delivered / stats.sent) * 100).toFixed(1) : '0'
     const readRate = stats.delivered > 0 ? ((stats.read / stats.delivered) * 100).toFixed(1) : '0'
     const clickRate = stats.read > 0 ? ((stats.clicked / stats.read) * 100).toFixed(1) : '0'
@@ -745,24 +890,16 @@ export default function CampaignsPage() {
 
                 <div className="form-group">
                   <label className="form-label">Channel</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                    {CAMPAIGN_TYPES.map(ct => (
-                      <button
-                        key={ct.value}
-                        onClick={() => setFormType(ct.value)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 16px',
-                          borderRadius: '10px', border: `2px solid ${formType === ct.value ? ct.color : 'var(--border)'}`,
-                          background: formType === ct.value ? ct.bg : 'var(--bg)',
-                          cursor: 'pointer', transition: 'all 0.15s',
-                        }}
-                      >
-                        <ct.icon size={20} style={{ color: ct.color }} />
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: formType === ct.value ? 'var(--text)' : 'var(--text-secondary)' }}>
-                          {ct.label}
-                        </span>
-                      </button>
-                    ))}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px',
+                    borderRadius: '10px', border: '2px solid #25D366',
+                    background: 'rgba(37,211,102,0.1)',
+                  }}>
+                    <MessageCircle size={20} style={{ color: '#25D366' }} />
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>WhatsApp</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Free messaging through your connected WhatsApp</div>
+                    </div>
                   </div>
                 </div>
 
@@ -877,13 +1014,13 @@ export default function CampaignsPage() {
                     </div>
                     <div style={{
                       padding: '16px 20px',
-                      background: formType === 'whatsapp' ? '#DCF8C6' : formType === 'sms' ? 'var(--bg)' : 'var(--bg)',
-                      borderRadius: formType === 'whatsapp' ? '12px 12px 4px 12px' : '12px',
-                      border: formType === 'whatsapp' ? 'none' : '1px solid var(--border)',
-                      color: formType === 'whatsapp' ? '#111b21' : 'var(--text-secondary)',
+                      background: '#DCF8C6',
+                      borderRadius: '12px 12px 4px 12px',
+                      border: 'none',
+                      color: '#111b21',
                       fontSize: '13px', lineHeight: '1.7', whiteSpace: 'pre-wrap',
                       maxHeight: '160px', overflowY: 'auto',
-                      boxShadow: formType === 'whatsapp' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
                     }}>
                       {messagePreview}
                     </div>
@@ -981,11 +1118,7 @@ export default function CampaignsPage() {
                         Channel
                       </div>
                       <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {(() => {
-                          const cfg = CAMPAIGN_TYPES.find(t => t.value === formType)
-                          if (!cfg) return formType
-                          return <><cfg.icon size={16} style={{ color: cfg.color }} /> {cfg.label}</>
-                        })()}
+                        <MessageCircle size={16} style={{ color: '#25D366' }} /> WhatsApp
                       </div>
                     </div>
                     <div>
@@ -1038,6 +1171,28 @@ export default function CampaignsPage() {
                   </div>
                 </div>
 
+                {/* WhatsApp Status Indicator */}
+                {formSchedule === 'now' && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px',
+                    borderRadius: '10px', marginBottom: '16px',
+                    background: waStatus === 'connected' ? 'rgba(34,197,94,0.06)' : waStatus === 'disconnected' ? 'rgba(239,68,68,0.06)' : 'rgba(59,130,246,0.06)',
+                    border: `1px solid ${waStatus === 'connected' ? 'rgba(34,197,94,0.2)' : waStatus === 'disconnected' ? 'rgba(239,68,68,0.2)' : 'rgba(59,130,246,0.2)'}`,
+                  }}>
+                    {waStatus === 'checking' ? (
+                      <><Loader size={16} style={{ color: 'var(--accent-bright)', animation: 'spin 1s linear infinite' }} /> <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Checking WhatsApp connection...</span></>
+                    ) : waStatus === 'connected' ? (
+                      <><Wifi size={16} style={{ color: 'var(--green)' }} /> <span style={{ fontSize: '13px', color: 'var(--green)', fontWeight: 500 }}>WhatsApp connected and ready to send</span></>
+                    ) : waStatus === 'disconnected' ? (
+                      <><WifiOff size={16} style={{ color: 'var(--rose)' }} /> <span style={{ fontSize: '13px', color: 'var(--rose)' }}>WhatsApp not connected. Please connect in WhatsApp Assistant first.</span></>
+                    ) : (
+                      <button className="btn btn-secondary btn-sm" onClick={checkWhatsAppStatus} style={{ fontSize: '12px' }}>
+                        <Wifi size={14} style={{ marginRight: '6px' }} /> Check WhatsApp Status
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <button className="btn btn-secondary btn-sm" onClick={() => setActiveStep(2)}>
                     <ChevronLeft size={14} style={{ marginRight: '4px' }} /> Back
@@ -1049,20 +1204,93 @@ export default function CampaignsPage() {
                     <button
                       className="btn btn-primary btn-sm"
                       onClick={() => handleSave(false)}
-                      disabled={!formName.trim() || !formMessage.trim() || (formSchedule === 'later' && !formScheduleDate)}
+                      disabled={!formName.trim() || !formMessage.trim() || (formSchedule === 'later' && !formScheduleDate) || sending}
                       style={{
-                        background: 'linear-gradient(135deg, var(--accent), var(--purple))',
+                        background: 'linear-gradient(135deg, #25D366, #128C7E)',
                         border: 'none',
                       }}
                     >
                       <Send size={14} style={{ marginRight: '6px' }} />
-                      {formSchedule === 'now' ? 'Launch Campaign' : 'Schedule Campaign'}
+                      {formSchedule === 'now' ? 'Send via WhatsApp' : 'Schedule Campaign'}
                     </button>
                   </div>
                 </div>
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Sending Progress Overlay */}
+      {sending && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '460px', textAlign: 'center', padding: '40px 32px' }}>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '50%',
+              background: 'rgba(37,211,102,0.1)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
+            }}>
+              <MessageCircle size={32} style={{ color: '#25D366' }} />
+            </div>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', margin: '0 0 8px' }}>
+              Sending Campaign...
+            </h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 24px' }}>
+              Sending messages to your customers via WhatsApp. Please don't close this page.
+            </p>
+
+            <div style={{ margin: '0 0 12px' }}>
+              <div style={{
+                height: '8px', borderRadius: '4px', background: 'var(--bg)',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  height: '100%', borderRadius: '4px',
+                  background: 'linear-gradient(90deg, #25D366, #128C7E)',
+                  width: `${sendProgress.total > 0 ? (sendProgress.current / sendProgress.total) * 100 : 0}%`,
+                  transition: 'width 0.3s ease',
+                }} />
+              </div>
+            </div>
+
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', marginBottom: '4px' }}>
+              {sendProgress.current} / {sendProgress.total}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+              {sendProgress.failed > 0 && <span style={{ color: 'var(--rose)' }}>{sendProgress.failed} failed &middot; </span>}
+              {sendProgress.current < sendProgress.total
+                ? `Estimated ${Math.ceil((sendProgress.total - sendProgress.current) * SEND_DELAY_MS / 1000 / 60)} min remaining`
+                : 'Finishing up...'}
+            </div>
+
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => { abortRef.current = true }}
+              style={{ fontSize: '12px' }}
+            >
+              Stop Sending
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {sendError && (
+        <div style={{
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          padding: '14px 24px', borderRadius: '12px', background: '#FEF2F2',
+          border: '1px solid rgba(239,68,68,0.2)', display: 'flex',
+          alignItems: 'center', gap: '12px', zIndex: 1200,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.1)', maxWidth: '500px',
+        }}>
+          <AlertCircle size={20} style={{ color: 'var(--rose)', flexShrink: 0 }} />
+          <span style={{ fontSize: '13px', color: '#991B1B', flex: 1 }}>{sendError}</span>
+          <button
+            onClick={() => setSendError(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+          >
+            <X size={16} style={{ color: '#991B1B' }} />
+          </button>
         </div>
       )}
     </>

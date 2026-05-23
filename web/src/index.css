@@ -345,7 +345,7 @@ input, select, textarea, button { font-family: inherit; }
 .modal-actions { display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end; }
 
 /* ─── Mobile Header ─── */
-.mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: rgba(6,7,11,0.95); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 12px 16px; align-items: center; justify-content: space-between; }
+.mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 60; background: #FFFFFF; border-bottom: 1px solid var(--border); padding: 12px 16px; align-items: center; justify-content: space-between; }
 .mobile-menu-btn { width: 40px; height: 40px; background: none; border: 1px solid var(--border); border-radius: var(--radius-xs); color: var(--text); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
 .mobile-menu-btn:hover { border-color: var(--border-hover); }
 .sidebar-close { display: none; position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; }
@@ -440,6 +440,7 @@ input, select, textarea, button { font-family: inherit; }
 .booking-success { text-align: center; padding: 56px 20px; }
 .booking-success-icon { font-size: 64px; margin-bottom: 20px; animation: successPop 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes successPop { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .booking-success h2 { font-family: var(--font-display); font-size: 24px; font-weight: 700; margin-bottom: 8px; }
 .booking-success p { color: var(--text-secondary); font-size: 14px; }
 
