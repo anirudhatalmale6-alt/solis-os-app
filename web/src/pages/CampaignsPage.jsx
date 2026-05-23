@@ -244,7 +244,18 @@ export default function CampaignsPage() {
 
   const cleanPhone = (phone) => {
     if (!phone) return null
-    const digits = phone.replace(/\D/g, '')
+    const trimmed = phone.trim()
+    if (trimmed.startsWith('+')) {
+      const parts = trimmed.substring(1).split(/[\s\-]+/)
+      if (parts.length >= 2) {
+        const countryCode = parts[0].replace(/\D/g, '')
+        const rest = parts.slice(1).join('').replace(/\D/g, '')
+        const national = rest.replace(/^0+/, '')
+        const full = countryCode + national
+        if (full.length >= 7) return full
+      }
+    }
+    const digits = trimmed.replace(/\D/g, '')
     if (digits.length < 7) return null
     return digits
   }
@@ -551,7 +562,7 @@ export default function CampaignsPage() {
         </div>
 
         {/* Performance Stats */}
-        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', marginBottom: '20px' }}>
+        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', marginBottom: '20px' }}>
           <div className="stat-card">
             <div className="stat-card-icon" style={{ background: 'rgba(59,130,246,0.1)' }}>
               <Send size={20} style={{ color: 'var(--accent-bright)' }} />
