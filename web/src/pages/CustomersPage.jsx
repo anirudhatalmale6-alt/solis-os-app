@@ -13,6 +13,7 @@ export default function CustomersPage() {
   const [editing, setEditing] = useState(null)
   const [formName, setFormName] = useState('')
   const [formEmail, setFormEmail] = useState('')
+  const [formCountryCode, setFormCountryCode] = useState('+971')
   const [formPhone, setFormPhone] = useState('')
   const [formNotes, setFormNotes] = useState('')
   const [viewCustomer, setViewCustomer] = useState(null)
@@ -29,9 +30,38 @@ export default function CustomersPage() {
 
   useEffect(() => { loadData() }, [user])
 
+  const COUNTRY_CODES = [
+    { code: '+971', label: 'UAE', flag: '\u{1F1E6}\u{1F1EA}' },
+    { code: '+966', label: 'KSA', flag: '\u{1F1F8}\u{1F1E6}' },
+    { code: '+973', label: 'BHR', flag: '\u{1F1E7}\u{1F1ED}' },
+    { code: '+974', label: 'QAT', flag: '\u{1F1F6}\u{1F1E6}' },
+    { code: '+968', label: 'OMN', flag: '\u{1F1F4}\u{1F1F2}' },
+    { code: '+965', label: 'KWT', flag: '\u{1F1F0}\u{1F1FC}' },
+    { code: '+20', label: 'EGY', flag: '\u{1F1EA}\u{1F1EC}' },
+    { code: '+962', label: 'JOR', flag: '\u{1F1EF}\u{1F1F4}' },
+    { code: '+961', label: 'LBN', flag: '\u{1F1F1}\u{1F1E7}' },
+    { code: '+964', label: 'IRQ', flag: '\u{1F1EE}\u{1F1F6}' },
+    { code: '+91', label: 'IND', flag: '\u{1F1EE}\u{1F1F3}' },
+    { code: '+92', label: 'PAK', flag: '\u{1F1F5}\u{1F1F0}' },
+    { code: '+63', label: 'PHL', flag: '\u{1F1F5}\u{1F1ED}' },
+    { code: '+44', label: 'UK', flag: '\u{1F1EC}\u{1F1E7}' },
+    { code: '+1', label: 'US', flag: '\u{1F1FA}\u{1F1F8}' },
+    { code: '+33', label: 'FRA', flag: '\u{1F1EB}\u{1F1F7}' },
+    { code: '+49', label: 'DEU', flag: '\u{1F1E9}\u{1F1EA}' },
+    { code: '+61', label: 'AUS', flag: '\u{1F1E6}\u{1F1FA}' },
+    { code: '+86', label: 'CHN', flag: '\u{1F1E8}\u{1F1F3}' },
+    { code: '+81', label: 'JPN', flag: '\u{1F1EF}\u{1F1F5}' },
+    { code: '+82', label: 'KOR', flag: '\u{1F1F0}\u{1F1F7}' },
+    { code: '+55', label: 'BRA', flag: '\u{1F1E7}\u{1F1F7}' },
+    { code: '+234', label: 'NGA', flag: '\u{1F1F3}\u{1F1EC}' },
+    { code: '+27', label: 'ZAF', flag: '\u{1F1FF}\u{1F1E6}' },
+    { code: '+90', label: 'TUR', flag: '\u{1F1F9}\u{1F1F7}' },
+  ]
+
   const resetForm = () => {
     setFormName('')
     setFormEmail('')
+    setFormCountryCode('+971')
     setFormPhone('')
     setFormNotes('')
     setEditing(null)
@@ -46,18 +76,27 @@ export default function CustomersPage() {
     setEditing(c)
     setFormName(c.name)
     setFormEmail(c.email || '')
-    setFormPhone(c.phone || '')
+    const phone = c.phone || ''
+    const matched = COUNTRY_CODES.find(cc => phone.startsWith(cc.code))
+    if (matched) {
+      setFormCountryCode(matched.code)
+      setFormPhone(phone.slice(matched.code.length).replace(/^\s+/, ''))
+    } else {
+      setFormCountryCode('+971')
+      setFormPhone(phone)
+    }
     setFormNotes(c.notes || '')
     setShowModal(true)
   }
 
   const handleSave = async () => {
     if (!formName) return
+    const fullPhone = formPhone ? (formCountryCode + ' ' + formPhone.replace(/^\s+/, '')) : null
     if (editing) {
       await dataStore.updateCustomer(editing.id, {
         name: formName,
         email: formEmail || null,
-        phone: formPhone || null,
+        phone: fullPhone,
         notes: formNotes || null,
       })
     } else {
@@ -65,7 +104,7 @@ export default function CustomersPage() {
         business_id: business.id,
         name: formName,
         email: formEmail || null,
-        phone: formPhone || null,
+        phone: fullPhone,
         notes: formNotes || null,
       })
     }
@@ -109,7 +148,7 @@ export default function CustomersPage() {
         <p className="page-subtitle">Manage your customer relationships</p>
       </div>
 
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '20px' }}>
+      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', marginBottom: '20px' }}>
         <div className="stat-card">
           <div className="stat-card-icon"><UserRound size={22} /></div>
           <div className="stat-card-label">Total Customers</div>
@@ -250,7 +289,7 @@ export default function CustomersPage() {
               <button className="btn-icon" onClick={() => setViewCustomer(null)}><X size={18} /></button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '20px' }}>
               {viewCustomer.email && (
                 <div style={{ padding: '14px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Email</div>
@@ -318,7 +357,19 @@ export default function CustomersPage() {
             </div>
             <div className="form-group">
               <label className="form-label">Phone</label>
-              <input type="tel" className="form-input" placeholder="+1 555 123 4567" value={formPhone} onChange={e => setFormPhone(e.target.value)} />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select
+                  className="form-input"
+                  value={formCountryCode}
+                  onChange={e => setFormCountryCode(e.target.value)}
+                  style={{ width: '110px', flexShrink: 0, fontSize: '13px' }}
+                >
+                  {COUNTRY_CODES.map(cc => (
+                    <option key={cc.code} value={cc.code}>{cc.flag} {cc.code} {cc.label}</option>
+                  ))}
+                </select>
+                <input type="tel" className="form-input" placeholder="50 123 4567" value={formPhone} onChange={e => setFormPhone(e.target.value)} style={{ flex: 1 }} />
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label">Notes</label>

@@ -277,7 +277,7 @@ export default function GiftCardsPage() {
             <button className="btn btn-ghost btn-sm" onClick={() => setShowCreate(false)}><X size={18} /></button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
             <div>
               <div className="form-group" style={{ marginBottom: '16px' }}>
                 <label className="form-label">Amount</label>
@@ -299,7 +299,7 @@ export default function GiftCardsPage() {
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '16px' }}>
                 <div className="form-group">
                   <label className="form-label">Recipient Name</label>
                   <input type="text" className="form-input" value={recipientName} onChange={e => setRecipientName(e.target.value)} placeholder="Jane Smith" />
@@ -314,7 +314,7 @@ export default function GiftCardsPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '16px' }}>
                 <div className="form-group">
                   <label className="form-label">Sender Name</label>
                   <input type="text" className="form-input" value={senderName} onChange={e => setSenderName(e.target.value)} placeholder="John Doe" />
@@ -357,7 +357,7 @@ export default function GiftCardsPage() {
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{
-                width: '100%', maxWidth: '380px', aspectRatio: '1.6 / 1', borderRadius: '16px', padding: '28px',
+                width: '100%', maxWidth: '340px', aspectRatio: '1.6 / 1', borderRadius: '16px', padding: '20px',
                 background: CARD_THEMES[cardTheme].gradient,
                 color: '#fff', position: 'relative', overflow: 'hidden', boxShadow: `0 20px 60px ${CARD_THEMES[cardTheme].shadow}`,
                 display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
@@ -433,15 +433,15 @@ export default function GiftCardsPage() {
                 padding: '16px 20px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border)',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                   <div style={{
                     fontFamily: 'monospace', fontSize: '14px', fontWeight: 700, letterSpacing: '1.5px',
                     color: c.computedStatus === 'active' ? 'var(--accent-bright)' : 'var(--text-muted)',
-                    minWidth: '180px',
+                    minWidth: '0',
                   }}>
                     {c.code}
                   </div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px', fontSize: '13px' }}>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', flexWrap: 'wrap', minWidth: 0 }}>
                     <span style={{ color: 'var(--text-secondary)' }}>{c.recipient_name}</span>
                     <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>from {c.sender_name || '—'}</span>
                     <span style={{ fontWeight: 600, color: 'var(--text)' }}>{sym}{c.amount}</span>
@@ -579,7 +579,7 @@ export default function GiftCardsPage() {
           ) : (
             <div style={{ fontSize: '13px' }}>
               <div style={{
-                display: 'grid', gridTemplateColumns: '1.4fr 1.2fr 0.8fr 0.8fr 1fr', gap: '12px',
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '8px',
                 padding: '8px 12px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)',
                 textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid var(--border)',
               }}>
@@ -595,7 +595,7 @@ export default function GiftCardsPage() {
                 const balanceAfter = card ? card.amount - redsBefore.reduce((s, rx) => s + rx.amount, 0) : 0
                 return (
                   <div key={i} style={{
-                    display: 'grid', gridTemplateColumns: '1.4fr 1.2fr 0.8fr 0.8fr 1fr', gap: '12px',
+                    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '8px',
                     padding: '10px 12px', borderBottom: i < allRedemptions.length - 1 ? '1px solid var(--border)' : 'none',
                     color: 'var(--text-secondary)',
                   }}>

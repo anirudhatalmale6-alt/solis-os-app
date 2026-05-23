@@ -285,7 +285,7 @@ export default function LoyaltyPage() {
           <span style={{ fontSize: '12px', color: 'var(--text-muted)', transition: 'transform 0.2s', transform: settingsOpen ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
         </div>
         {settingsOpen && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginTop: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px', marginTop: '16px' }}>
             <div className="form-group">
               <label className="form-label">Points per Booking</label>
               <input
@@ -527,7 +527,7 @@ export default function LoyaltyPage() {
                 <X size={16} />
               </button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '16px' }}>
               <div className="form-group">
                 <label className="form-label">Reward Name</label>
                 <input
@@ -549,7 +549,7 @@ export default function LoyaltyPage() {
                 />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '16px' }}>
               <div className="form-group">
                 <label className="form-label">Points Cost</label>
                 <input
@@ -615,9 +615,9 @@ export default function LoyaltyPage() {
                     <span className="badge badge-rose" style={{ fontSize: '11px', fontWeight: 700 }}>{r.points.toLocaleString()} pts</span>
                     <span className={typeBadgeClass(r.type)} style={{ fontSize: '11px', textTransform: 'capitalize' }}>{r.type}</span>
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', gap: '16px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <span>{r.description}</span>
-                    <span style={{ whiteSpace: 'nowrap' }}>{r.redeemed || 0} redeemed</span>
+                    <span>{r.redeemed || 0} redeemed</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
@@ -712,10 +712,10 @@ export default function LoyaltyPage() {
                           }} />
                         </div>
                       </div>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                         {c.nextTier ? `${c.nextTier.min - c.totalPoints} pts to ${c.nextTier.name}` : 'Max tier reached'}
                       </span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                         Member since {formatDate(c.created_at)}
                       </span>
                     </div>
