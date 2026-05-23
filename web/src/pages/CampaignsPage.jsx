@@ -245,18 +245,28 @@ export default function CampaignsPage() {
   const cleanPhone = (phone) => {
     if (!phone) return null
     const trimmed = phone.trim()
+    let digits = trimmed.replace(/\D/g, '')
+    if (digits.length < 7) return null
+
+    // If international format with space: "+61 0422..." → parse country code + strip trunk 0
     if (trimmed.startsWith('+')) {
       const parts = trimmed.substring(1).split(/[\s\-]+/)
       if (parts.length >= 2) {
-        const countryCode = parts[0].replace(/\D/g, '')
-        const rest = parts.slice(1).join('').replace(/\D/g, '')
-        const national = rest.replace(/^0+/, '')
-        const full = countryCode + national
-        if (full.length >= 7) return full
+        const cc = parts[0].replace(/\D/g, '')
+        const nat = parts.slice(1).join('').replace(/\D/g, '').replace(/^0+/, '')
+        if ((cc + nat).length >= 7) return cc + nat
       }
     }
-    const digits = trimmed.replace(/\D/g, '')
-    if (digits.length < 7) return null
+
+    // Digit-based fallback: strip trunk 0 after known country codes
+    if (digits.startsWith('610') && digits.length >= 12) digits = '61' + digits.slice(3)
+    else if (digits.startsWith('440') && digits.length >= 12) digits = '44' + digits.slice(3)
+    else if (digits.startsWith('490') && digits.length >= 12) digits = '49' + digits.slice(3)
+    else if (digits.startsWith('330') && digits.length >= 12) digits = '33' + digits.slice(3)
+    else if (digits.startsWith('910') && digits.length >= 12) digits = '91' + digits.slice(3)
+    else if (digits.startsWith('640') && digits.length >= 11) digits = '64' + digits.slice(3)
+    else if (digits.startsWith('270') && digits.length >= 11) digits = '27' + digits.slice(3)
+
     return digits
   }
 
@@ -281,6 +291,8 @@ export default function CampaignsPage() {
 
     let sentCount = 0
     let failedCount = 0
+    const messageIds = []
+    const sentPhones = []
 
     for (let i = 0; i < targetCustomers.length; i++) {
       if (abortRef.current) break
@@ -307,6 +319,9 @@ export default function CampaignsPage() {
         })
         if (resp.ok) {
           sentCount++
+          sentPhones.push(phone)
+          const data = await resp.json().catch(() => ({}))
+          if (data.messageId) messageIds.push(data.messageId)
         } else {
           failedCount++
         }
@@ -322,8 +337,49 @@ export default function CampaignsPage() {
     }
 
     setSending(false)
-    return { sent: sentCount, failed: failedCount, total }
+    return { sent: sentCount, failed: failedCount, total, messageIds, sentPhones }
   }
+
+  const refreshCampaignStats = useCallback(async (campaign) => {
+    if (!business || !campaign.messageIds?.length || campaign.status !== 'sent') return null
+    try {
+      const resp = await fetch(`${WA_API}/api/whatsapp/campaign-stats`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_id: business.id,
+          message_ids: campaign.messageIds,
+          phones: campaign.sentPhones || [],
+          sent_after: campaign.sent_at,
+        }),
+      })
+      if (resp.ok) {
+        const data = await resp.json()
+        const updatedStats = {
+          ...campaign.stats,
+          delivered: data.delivered || 0,
+          read: data.read || 0,
+          responded: data.replied || 0,
+        }
+        const updated = campaigns.map(c =>
+          c.id === campaign.id ? { ...c, stats: updatedStats } : c
+        )
+        saveCampaigns(updated)
+        if (viewCampaign?.id === campaign.id) {
+          setViewCampaign({ ...campaign, stats: updatedStats })
+        }
+        return updatedStats
+      }
+    } catch {}
+    return null
+  }, [business, campaigns, viewCampaign])
+
+  useEffect(() => {
+    if (!viewCampaign || viewCampaign.status !== 'sent' || !viewCampaign.messageIds?.length) return
+    refreshCampaignStats(viewCampaign)
+    const interval = setInterval(() => refreshCampaignStats(viewCampaign), 30000)
+    return () => clearInterval(interval)
+  }, [viewCampaign?.id])
 
   const getAudienceCount = (audience) => {
     if (audience === 'all') return customers.length
@@ -439,9 +495,11 @@ export default function CampaignsPage() {
       if (result) {
         campaign.status = 'sent'
         campaign.sent_at = nowISOStr()
+        campaign.messageIds = result.messageIds || []
+        campaign.sentPhones = result.sentPhones || []
         campaign.stats = {
           sent: result.sent,
-          delivered: result.sent,
+          delivered: 0,
           read: 0,
           clicked: 0,
           responded: 0,
