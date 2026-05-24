@@ -8,6 +8,7 @@ import {
   RefreshCw,
   ArrowLeft,
   Send,
+  Trash2,
 } from 'lucide-react'
 
 const API_BASE = 'https://api.solis-os.com'
@@ -59,6 +60,17 @@ export default function LeadsPage() {
     fetchLeads()
   }
 
+  const handleDelete = async (phone) => {
+    if (!confirm('Delete this conversation? This cannot be undone.')) return
+    try {
+      const resp = await fetch(`${API_BASE}/api/admin/leads/${phone}`, { method: 'DELETE' })
+      if (resp.ok) {
+        setSelectedConvo(null)
+        fetchLeads()
+      }
+    } catch {}
+  }
+
   const filtered = data.conversations.filter(c => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
@@ -91,6 +103,13 @@ export default function LeadsPage() {
               </p>
             </div>
           </div>
+          <button
+            onClick={() => handleDelete(convo.phone)}
+            className="btn btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#ef4444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+          >
+            <Trash2 size={14} /> Delete
+          </button>
         </div>
         <div className="card" style={{ maxHeight: '70vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '20px' }}>
           {convo.messages.map(m => (
