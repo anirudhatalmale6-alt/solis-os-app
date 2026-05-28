@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { MessageCircle, Wifi, WifiOff, Loader2, QrCode } from 'lucide-react'
+import { MessageCircle, Wifi, WifiOff, Loader2, QrCode, Smartphone } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
 
@@ -12,6 +12,9 @@ export default function WhatsAppAssistantPage() {
   const [waQR, setWaQR] = useState(null)
   const [waPhone, setWaPhone] = useState(null)
   const [waConnecting, setWaConnecting] = useState(false)
+  const [linkMethod, setLinkMethod] = useState('qr')
+  const [phoneInput, setPhoneInput] = useState('')
+  const [pairingCode, setPairingCode] = useState(null)
   const waPollingRef = useState(null)
 
   useEffect(() => {
@@ -46,8 +49,8 @@ export default function WhatsAppAssistantPage() {
             <MessageCircle size={18} style={{ color: '#25D366' }} />
             <span>Connection Status</span>
           </div>
-          <span className={`badge ${waStatus === 'connected' ? 'badge-green' : waStatus === 'connecting' || waStatus === 'waiting_scan' ? 'badge-amber' : 'badge-red'}`}>
-            {waStatus === 'connected' ? 'Connected' : waStatus === 'waiting_scan' ? 'Scan QR' : waStatus === 'connecting' || waStatus === 'reconnecting' ? 'Connecting...' : 'Disconnected'}
+          <span className={`badge ${waStatus === 'connected' ? 'badge-green' : waStatus === 'connecting' || waStatus === 'waiting_scan' || waStatus === 'waiting_code' ? 'badge-amber' : 'badge-red'}`}>
+            {waStatus === 'connected' ? 'Connected' : waStatus === 'waiting_scan' ? 'Scan QR' : waStatus === 'waiting_code' ? 'Enter Code' : waStatus === 'connecting' || waStatus === 'reconnecting' ? 'Connecting...' : 'Disconnected'}
           </span>
         </div>
         <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: '1.6' }}>
@@ -91,6 +94,29 @@ export default function WhatsAppAssistantPage() {
           </div>
         )}
 
+        {(waStatus === 'waiting_code') && pairingCode && (
+          <div style={{
+            padding: '24px', borderRadius: 'var(--radius-sm)',
+            background: 'var(--bg)', border: '1px solid var(--border)',
+            textAlign: 'center', marginBottom: '16px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
+              <Smartphone size={18} style={{ color: 'var(--accent-bright)' }} />
+              <span style={{ fontSize: '14px', fontWeight: 600 }}>Enter Code in WhatsApp</span>
+            </div>
+            <div style={{
+              fontSize: '32px', fontWeight: 700, letterSpacing: '6px', fontFamily: 'monospace',
+              padding: '16px 24px', background: '#fff', borderRadius: '12px', display: 'inline-block',
+              color: 'var(--text-primary)',
+            }}>
+              {pairingCode}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '12px', lineHeight: '1.6' }}>
+              Open WhatsApp &gt; Settings &gt; Linked Devices &gt; Link a Device &gt; Link with phone number instead &gt; Enter this code
+            </div>
+          </div>
+        )}
+
         {(waStatus === 'connecting' || waStatus === 'reconnecting') && !waQR && (
           <div style={{
             padding: '24px', borderRadius: 'var(--radius-sm)',
@@ -120,35 +146,106 @@ export default function WhatsAppAssistantPage() {
           </div>
         )}
 
+        {waStatus === 'disconnected' && !waConnecting && (
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              <button
+                className={`btn btn-sm ${linkMethod === 'qr' ? 'btn-primary' : ''}`}
+                style={linkMethod === 'qr' ? { background: '#25D366', display: 'flex', alignItems: 'center', gap: '6px' } : { display: 'flex', alignItems: 'center', gap: '6px' }}
+                onClick={() => setLinkMethod('qr')}
+              >
+                <QrCode size={14} />
+                QR Code
+              </button>
+              <button
+                className={`btn btn-sm ${linkMethod === 'phone' ? 'btn-primary' : ''}`}
+                style={linkMethod === 'phone' ? { background: '#25D366', display: 'flex', alignItems: 'center', gap: '6px' } : { display: 'flex', alignItems: 'center', gap: '6px' }}
+                onClick={() => setLinkMethod('phone')}
+              >
+                <Smartphone size={14} />
+                Phone Number
+              </button>
+            </div>
+            {linkMethod === 'phone' && (
+              <div style={{ marginBottom: '12px' }}>
+                <input
+                  type="tel"
+                  placeholder="Enter phone number (e.g. 61412345678)"
+                  value={phoneInput}
+                  onChange={(e) => setPhoneInput(e.target.value)}
+                  style={{
+                    width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border)', fontSize: '14px',
+                    background: 'var(--bg)',
+                  }}
+                />
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Include country code without + sign
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           {waStatus !== 'connected' && (
             <button
               className="btn btn-primary btn-sm"
-              disabled={waConnecting}
+              disabled={waConnecting || (linkMethod === 'phone' && waStatus === 'disconnected' && !phoneInput.trim())}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#25D366' }}
               onClick={async () => {
                 if (!business) return
                 setWaConnecting(true)
                 setWaQR(null)
+                setPairingCode(null)
+                const usePhone = linkMethod === 'phone' && phoneInput.trim()
                 try {
                   await fetch(`${WA_API}/api/whatsapp/connect`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ business_id: business.id }),
+                    body: JSON.stringify({
+                      business_id: business.id,
+                      ...(usePhone ? { phone_number: phoneInput.trim() } : {}),
+                    }),
                   })
                   setWaStatus('connecting')
-                  const pollQR = setInterval(async () => {
+
+                  const poll = setInterval(async () => {
                     try {
+                      if (usePhone) {
+                        const codeResp = await fetch(`${WA_API}/api/whatsapp/pairing-code/${business.id}`)
+                        if (codeResp.ok) {
+                          const codeData = await codeResp.json()
+                          if (codeData.code) {
+                            setPairingCode(codeData.code)
+                            setWaStatus('waiting_code')
+                          }
+                          if (codeData.status === 'connected') {
+                            clearInterval(poll)
+                            setPairingCode(null)
+                            setWaStatus('connected')
+                            setWaConnecting(false)
+                            const statusResp = await fetch(`${WA_API}/api/whatsapp/status/${business.id}`)
+                            if (statusResp.ok) {
+                              const sd = await statusResp.json()
+                              if (sd.phone) setWaPhone(sd.phone)
+                            }
+                            return
+                          }
+                        }
+                      }
+
                       const resp = await fetch(`${WA_API}/api/whatsapp/qr/${business.id}`)
                       if (resp.ok) {
                         const data = await resp.json()
-                        if (data.qr) {
+                        if (data.qr && !usePhone) {
                           setWaQR(data.qr)
                           setWaStatus('waiting_scan')
                         }
                         if (data.status === 'connected') {
-                          clearInterval(pollQR)
+                          clearInterval(poll)
                           setWaQR(null)
+                          setPairingCode(null)
                           setWaStatus('connected')
                           setWaConnecting(false)
                           const statusResp = await fetch(`${WA_API}/api/whatsapp/status/${business.id}`)
@@ -160,9 +257,9 @@ export default function WhatsAppAssistantPage() {
                       }
                     } catch {}
                   }, 2000)
-                  waPollingRef[1](pollQR)
+                  waPollingRef[1](poll)
                   setTimeout(() => {
-                    clearInterval(pollQR)
+                    clearInterval(poll)
                     setWaConnecting(false)
                   }, 120000)
                 } catch {
@@ -188,6 +285,7 @@ export default function WhatsAppAssistantPage() {
                   })
                   setWaStatus('disconnected')
                   setWaPhone(null)
+                  setPairingCode(null)
                 } catch {}
               }}
             >
