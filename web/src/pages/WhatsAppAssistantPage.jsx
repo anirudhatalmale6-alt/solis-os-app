@@ -146,7 +146,7 @@ export default function WhatsAppAssistantPage() {
           </div>
         )}
 
-        {waStatus === 'disconnected' && !waConnecting && (
+        {waStatus !== 'connected' && (
           <div style={{ marginBottom: '16px' }}>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
               <button
