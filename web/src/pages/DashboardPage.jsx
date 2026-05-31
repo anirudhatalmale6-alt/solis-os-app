@@ -197,6 +197,7 @@ export default function DashboardPage() {
   const svcName = (b) => b.service_name || (services.find(s => s.id === b.service_id)?.name) || 'Service'
   const insights = getInsights(business, services, staff, todayBookings, allBookings, customers)
 
+
   const sym = { USD: '$', EUR: '€', GBP: '£', CAD: 'C$', AUD: 'A$', INR: '₹' }[business?.currency] || '$'
   const monthRevenue = allBookings
     .filter(b => b.status === 'completed' && b.date?.startsWith(todayStr().slice(0, 7)))
@@ -263,7 +264,7 @@ export default function DashboardPage() {
         })}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+      <div className="dashboard-grid-2col">
         {/* Today's Schedule */}
         <div className="card" style={{ marginBottom: 0 }}>
           <div className="card-title">
@@ -348,7 +349,7 @@ export default function DashboardPage() {
             View All <ArrowRight size={14} />
           </Link>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: customers.length > 0 ? '16px' : 0 }}>
+        <div className="customer-stats-grid" style={{ marginBottom: customers.length > 0 ? '16px' : 0 }}>
           <div style={{ padding: '16px', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', textAlign: 'center' }}>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: 700 }}>{customers.length}</div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Total Customers</div>
