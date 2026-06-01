@@ -19,15 +19,22 @@ export default function ForgotPasswordPage() {
 
     setLoading(true)
 
-    if (isSupabaseConfigured() && supabase) {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+    try {
+      const checkResp = await fetch('https://api.solis-os.com/api/pos/send-reset-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase() }),
       })
-      if (resetError) {
-        setError(resetError.message)
+      const checkData = await checkResp.json()
+      if (!checkResp.ok) {
+        setError(checkData.error || 'No account found with this email.')
         setLoading(false)
         return
       }
+    } catch {
+      setError('Connection error. Please try again.')
+      setLoading(false)
+      return
     }
 
     setSent(true)
@@ -39,7 +46,7 @@ export default function ForgotPasswordPage() {
       <div className="auth-page">
         <div className="auth-card" style={{ textAlign: 'center' }}>
           <div className="auth-logo">
-            <img src="/logo-full.png" alt="Solis OS" style={{ height: '130px', width: 'auto' }} />
+            <img src="/logo-full.png" alt="Solis OS" style={{ height: '80px', width: 'auto' }} />
           </div>
           <div style={{ fontSize: '48px', marginBottom: '8px' }}>📧</div>
           <h1 className="auth-title">Check your email</h1>
@@ -62,7 +69,7 @@ export default function ForgotPasswordPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <img src="/logo-full.png" alt="Solis OS" style={{ height: '130px', width: 'auto' }} />
+          <img src="/logo-full.png" alt="Solis OS" style={{ height: '80px', width: 'auto' }} />
         </div>
         <h1 className="auth-title">Reset password</h1>
         <p className="auth-subtitle">Enter your email and we'll send you a reset link</p>
