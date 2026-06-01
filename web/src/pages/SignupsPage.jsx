@@ -76,7 +76,8 @@ export default function SignupsPage() {
   const thisWeek = new Date(Date.now() - 7 * 86400000).toISOString()
   const todaySignups = users.filter(u => u.created_at?.startsWith(today)).length
   const weekSignups = users.filter(u => u.created_at >= thisWeek).length
-  const withBusiness = users.filter(u => u.business).length
+  const posUsers = users.filter(u => u.source === 'pos').length
+  const dashUsers = users.filter(u => u.source === 'dashboard').length
 
   return (
     <>
@@ -103,8 +104,8 @@ export default function SignupsPage() {
         </div>
         <div className="stat-card">
           <div className="stat-card-icon" style={{ color: 'var(--teal)' }}><Building2 size={22} /></div>
-          <div className="stat-card-label">Set Up Business</div>
-          <div className="stat-card-value">{withBusiness}</div>
+          <div className="stat-card-label">POS Users</div>
+          <div className="stat-card-value">{posUsers}</div>
         </div>
       </div>
 
@@ -153,6 +154,7 @@ export default function SignupsPage() {
                 <tr>
                   <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>User</th>
                   <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Business</th>
+                  <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Source</th>
                   <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Signed Up</th>
                   <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Last Active</th>
                 </tr>
@@ -190,6 +192,19 @@ export default function SignupsPage() {
                         </div>
                       ) : (
                         <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Not set up</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600,
+                        background: u.source === 'pos' ? 'rgba(245,158,11,0.12)' : u.source === 'dashboard' ? 'rgba(59,130,246,0.12)' : 'rgba(107,114,128,0.12)',
+                        color: u.source === 'pos' ? '#d97706' : u.source === 'dashboard' ? '#2563eb' : '#6b7280',
+                      }}>
+                        {u.source === 'pos' ? 'POS' : u.source === 'dashboard' ? 'Dashboard' : 'Other'}
+                      </span>
+                      {!u.email_confirmed && (
+                        <div style={{ fontSize: '10px', color: '#ef4444', marginTop: '3px', fontWeight: 500 }}>Unverified</div>
                       )}
                     </td>
                     <td style={{ padding: '12px' }}>
