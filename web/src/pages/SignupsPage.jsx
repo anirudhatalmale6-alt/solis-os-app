@@ -8,6 +8,7 @@ import {
   Calendar,
   Search,
   RefreshCw,
+  Trash2,
 } from 'lucide-react'
 
 const API_BASE = 'https://api.solis-os.com'
@@ -62,6 +63,22 @@ export default function SignupsPage() {
   const handleRefresh = () => {
     setRefreshing(true)
     fetchSignups()
+  }
+
+  const handleDelete = async (userId, email) => {
+    if (!confirm(`Delete ${email}? This will permanently remove their account.`)) return
+    try {
+      const resp = await fetch(`${API_BASE}/api/admin/signups/${userId}`, { method: 'DELETE' })
+      if (resp.ok) {
+        setUsers(prev => prev.filter(u => u.id !== userId))
+        setTotal(prev => prev - 1)
+      } else {
+        const d = await resp.json().catch(() => ({}))
+        alert(d.error || 'Failed to delete user')
+      }
+    } catch {
+      alert('Connection error')
+    }
   }
 
   const filtered = users.filter(u => {
@@ -157,6 +174,7 @@ export default function SignupsPage() {
                   <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Source</th>
                   <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Signed Up</th>
                   <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Last Active</th>
+                  <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', width: '60px' }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -213,6 +231,20 @@ export default function SignupsPage() {
                     </td>
                     <td style={{ padding: '12px' }}>
                       <div style={{ fontSize: '13px' }}>{u.last_sign_in ? timeAgo(u.last_sign_in) : 'Never'}</div>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      <button
+                        onClick={() => handleDelete(u.id, u.email)}
+                        title="Delete user"
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer', padding: '6px',
+                          borderRadius: '8px', color: 'var(--text-muted)', transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-muted)' }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
                     </td>
                   </tr>
                 ))}
