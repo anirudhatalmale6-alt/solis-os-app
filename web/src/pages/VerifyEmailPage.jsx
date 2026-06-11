@@ -167,7 +167,7 @@ export default function VerifyEmailPage() {
     <div className="auth-page">
       <div className="auth-card" style={{ textAlign: 'center' }}>
         <div className="auth-logo">
-          <img src="/logo-full.png" alt="Solis OS" style={{ height: '130px', width: 'auto' }} />
+          <img src="/logo-full.png" alt="Solis OS" style={{ height: '80px', width: 'auto' }} />
         </div>
 
         <div style={{ fontSize: '48px', marginBottom: '8px' }}>✉️</div>

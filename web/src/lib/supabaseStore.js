@@ -2,19 +2,20 @@ import { supabase } from './supabase'
 
 export const supabaseStore = {
   async signUp(email, password, fullName) {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/login`,
-      },
-    })
-    if (error) return { error: { message: error.message } }
-    if (data.session) {
-      return { data: { user: { id: data.user.id, email: data.user.email, full_name: fullName } }, error: null }
+    try {
+      const resp = await fetch('https://api.solis-os.com/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, fullName }),
+      })
+      const result = await resp.json()
+      if (!resp.ok) return { error: { message: result.error || 'Signup failed' } }
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      if (signInError) return { error: { message: signInError.message } }
+      return { data: { user: { id: signInData.user.id, email: signInData.user.email, full_name: fullName } }, error: null }
+    } catch (e) {
+      return { error: { message: 'Connection error. Please try again.' } }
     }
-    return { data: null, error: null, confirmEmail: true }
   },
 
   async signIn(email, password) {

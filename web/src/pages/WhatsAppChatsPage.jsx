@@ -8,13 +8,19 @@ import {
   Bot,
   Clock,
   MessageCircle,
+  Trash2,
+  WifiOff,
+  Wifi,
+  AlertCircle,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
+import { useNavigate } from 'react-router-dom'
 
-const WA_API = import.meta.env.VITE_WHATSAPP_API_URL || 'https://wa.solis-os.com'
+const WA_API = 'https://wa.solis-os.com'
 
 function formatPhone(phone) {
+  if (!phone) return ''
   const clean = phone.replace(/\D/g, '')
   if (clean.length >= 10) {
     return '+' + clean.slice(0, -10) + ' ' + clean.slice(-10, -7) + ' ' + clean.slice(-7, -4) + ' ' + clean.slice(-4)
@@ -44,100 +50,145 @@ function formatTimestamp(dateStr) {
 
 export default function WhatsAppChatsPage() {
   const { user } = useAuth()
-  const [business, setBusiness] = useState(null)
-  const [messages, setMessages] = useState([])
+  const navigate = useNavigate()
+  const [conversations, setConversations] = useState([])
+  const [totalMessages, setTotalMessages] = useState(0)
   const [selectedPhone, setSelectedPhone] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [sendText, setSendText] = useState('')
   const [sending, setSending] = useState(false)
+  const [deleting, setDeleting] = useState(null)
+  const [clearingAll, setClearingAll] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState('unknown')
+  const [connectedPhone, setConnectedPhone] = useState(null)
   const messagesEndRef = useRef(null)
 
-  useEffect(() => {
-    if (!user) return
-    const loadData = async () => {
-      const biz = await dataStore.getBusiness(user.id)
-      if (biz) {
-        setBusiness(biz)
-        await fetchMessages(biz.id)
-      }
-      setLoading(false)
-    }
-    loadData()
-  }, [user])
+  const [business, setBusiness] = useState(null)
 
   const fetchMessages = async (bizId) => {
     try {
       const resp = await fetch(`${WA_API}/api/whatsapp/messages/${bizId}`)
       if (resp.ok) {
         const data = await resp.json()
-        setMessages(data)
+        const msgs = Array.isArray(data) ? data : (data.messages || [])
+
+        if (data.connectionStatus) setConnectionStatus(data.connectionStatus)
+        if (data.connectedPhone) setConnectedPhone(data.connectedPhone)
+
+        const convos = {}
+        for (const m of msgs) {
+          if (!m.phone) continue
+          if (!convos[m.phone]) convos[m.phone] = { phone: m.phone, name: null, messages: [], lastMessage: null }
+          convos[m.phone].messages.push(m)
+          if (!convos[m.phone].lastMessage || m.timestamp > convos[m.phone].lastMessage) convos[m.phone].lastMessage = m.timestamp
+          if (m.contactName && m.contactName !== 'there') convos[m.phone].name = m.contactName
+        }
+        const sorted = Object.values(convos).sort((a, b) => (b.lastMessage || '').localeCompare(a.lastMessage || ''))
+        setConversations(sorted)
+        setTotalMessages(msgs.length)
+        setLoading(false)
+        return
       }
     } catch {}
+    setLoading(false)
   }
 
   useEffect(() => {
+    if (!user) return
+    const load = async () => {
+      const biz = await dataStore.getBusiness(user.id)
+      if (biz) { setBusiness(biz); fetchMessages(biz.id) }
+      else { setLoading(false) }
+    }
+    load()
+  }, [user])
+
+  useEffect(() => {
     if (!business) return
-    const interval = setInterval(() => fetchMessages(business.id), 15000)
+    const interval = setInterval(() => fetchMessages(business.id), 10000)
     return () => clearInterval(interval)
   }, [business])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [selectedPhone, messages])
+  }, [selectedPhone, conversations])
 
-  const conversations = {}
-  messages.forEach(m => {
-    if (!conversations[m.phone]) {
-      conversations[m.phone] = { phone: m.phone, messages: [], lastMessage: null, lastTime: null }
-    }
-    conversations[m.phone].messages.push(m)
-    if (!conversations[m.phone].lastTime || m.timestamp > conversations[m.phone].lastTime) {
-      conversations[m.phone].lastMessage = m
-      conversations[m.phone].lastTime = m.timestamp
-    }
+  const filteredConversations = conversations.filter(c => {
+    if (!searchQuery) return true
+    const q = searchQuery.toLowerCase()
+    return c.phone.includes(searchQuery) ||
+      (c.name && c.name.toLowerCase().includes(q)) ||
+      c.messages.some(m => m.text?.toLowerCase().includes(q))
   })
 
-  const sortedConversations = Object.values(conversations)
-    .sort((a, b) => (b.lastTime || '').localeCompare(a.lastTime || ''))
-    .filter(c => {
-      if (!searchQuery) return true
-      return c.phone.includes(searchQuery) ||
-        c.messages.some(m => m.text.toLowerCase().includes(searchQuery.toLowerCase()))
-    })
-
-  const selectedConv = selectedPhone ? conversations[selectedPhone] : null
+  const selectedConv = selectedPhone
+    ? conversations.find(c => c.phone === selectedPhone)
+    : null
 
   const handleSend = async () => {
-    if (!sendText.trim() || !selectedPhone || !business || sending) return
+    if (!sendText.trim() || !selectedPhone || sending) return
     setSending(true)
     try {
       await fetch(`${WA_API}/api/whatsapp/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          business_id: business.id,
+          business_id: business?.id,
           phone: selectedPhone,
           message: sendText.trim(),
         }),
       })
       setSendText('')
-      setTimeout(() => fetchMessages(business.id), 1000)
+      if (business) setTimeout(() => fetchMessages(business.id), 1000)
     } catch {}
     setSending(false)
   }
 
-  const totalConversations = sortedConversations.length
-  const todayMessages = messages.filter(m => {
+  const handleDeleteConversation = async (phone, e) => {
+    if (e) e.stopPropagation()
+    if (!confirm(`Delete all messages for ${formatPhone(phone)}?`)) return
+    setDeleting(phone)
+    try {
+      await fetch(`${WA_API}/api/whatsapp/messages/${business?.id}/${encodeURIComponent(phone)}`, {
+        method: 'DELETE',
+      })
+      if (selectedPhone === phone) setSelectedPhone(null)
+      if (business) await fetchMessages(business.id)
+    } catch {}
+    setDeleting(null)
+  }
+
+  const handleClearAll = async () => {
+    if (!confirm('Clear ALL conversations? This cannot be undone.')) return
+    setClearingAll(true)
+    try {
+      await fetch(`${WA_API}/api/whatsapp/messages/${business?.id}`, {
+        method: 'DELETE',
+      })
+      setSelectedPhone(null)
+      setConversations([])
+      setTotalMessages(0)
+    } catch {}
+    setClearingAll(false)
+  }
+
+  const todayMessages = conversations.reduce((count, c) => {
     const today = new Date().toISOString().split('T')[0]
-    return m.timestamp?.startsWith(today)
-  }).length
+    return count + c.messages.filter(m => m.timestamp?.startsWith(today)).length
+  }, 0)
+
+  const isConnected = connectionStatus === 'connected'
 
   if (selectedPhone && selectedConv) {
+    const displayName = selectedConv.name && selectedConv.name !== 'there'
+      ? selectedConv.name
+      : formatPhone(selectedPhone)
+
     return (
       <>
         <div className="page-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
             <button
               onClick={() => setSelectedPhone(null)}
               className="btn btn-secondary btn-sm"
@@ -145,10 +196,21 @@ export default function WhatsAppChatsPage() {
             >
               <ArrowLeft size={18} />
             </button>
-            <div>
-              <h1 className="page-title" style={{ marginBottom: '2px' }}>{formatPhone(selectedPhone)}</h1>
-              <p className="page-subtitle">{selectedConv.messages.length} messages</p>
+            <div style={{ flex: 1 }}>
+              <h1 className="page-title" style={{ marginBottom: '2px' }}>{displayName}</h1>
+              <p className="page-subtitle">
+                {displayName !== formatPhone(selectedPhone) ? `${formatPhone(selectedPhone)} - ` : ''}
+                {selectedConv.messages.length} messages
+              </p>
             </div>
+            <button
+              onClick={() => handleDeleteConversation(selectedPhone)}
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '6px 10px', color: '#ef4444' }}
+              title="Delete conversation"
+            >
+              <Trash2 size={18} />
+            </button>
           </div>
         </div>
 
@@ -176,7 +238,7 @@ export default function WhatsAppChatsPage() {
                       <User size={12} style={{ color: '#25d366' }} />
                     )}
                     <span style={{ fontSize: '11px', fontWeight: 600, color: m.direction === 'outbound' ? 'var(--accent-bright)' : '#25d366' }}>
-                      {m.direction === 'outbound' ? 'AI Bot' : 'Customer'}
+                      {m.direction === 'outbound' ? 'AI Bot' : (m.contactName && m.contactName !== 'there' ? m.contactName : 'Customer')}
                     </span>
                   </div>
                   <div style={{ fontSize: '13px', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{m.text}</div>
@@ -189,28 +251,30 @@ export default function WhatsAppChatsPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div style={{
-            padding: '12px 20px', borderTop: '1px solid var(--border)',
-            display: 'flex', gap: '8px', alignItems: 'center',
-          }}>
-            <input
-              type="text"
-              placeholder="Send a message directly..."
-              value={sendText}
-              onChange={e => setSendText(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
-              className="form-input"
-              style={{ marginBottom: 0, flex: 1 }}
-            />
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={handleSend}
-              disabled={!sendText.trim() || sending}
-              style={{ padding: '8px 14px', flexShrink: 0 }}
-            >
-              <Send size={16} />
-            </button>
-          </div>
+          {isConnected && (
+            <div style={{
+              padding: '12px 20px', borderTop: '1px solid var(--border)',
+              display: 'flex', gap: '8px', alignItems: 'center',
+            }}>
+              <input
+                type="text"
+                placeholder="Send a message directly via WhatsApp..."
+                value={sendText}
+                onChange={e => setSendText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+                className="form-input"
+                style={{ marginBottom: 0, flex: 1 }}
+              />
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleSend}
+                disabled={!sendText.trim() || sending}
+                style={{ padding: '8px 14px', flexShrink: 0 }}
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          )}
         </div>
       </>
     )
@@ -219,15 +283,67 @@ export default function WhatsAppChatsPage() {
   return (
     <>
       <div className="page-header">
-        <h1 className="page-title">WhatsApp Conversations</h1>
-        <p className="page-subtitle">See who's messaging your AI WhatsApp assistant</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+          <div>
+            <h1 className="page-title">WhatsApp Conversations</h1>
+            <p className="page-subtitle">See who's messaging your AI WhatsApp assistant</p>
+          </div>
+          {conversations.length > 0 && (
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={handleClearAll}
+              disabled={clearingAll}
+              style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)', flexShrink: 0 }}
+            >
+              <Trash2 size={14} style={{ marginRight: '6px' }} />
+              {clearingAll ? 'Clearing...' : 'Clear All'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Connection Status Banner */}
+      <div style={{
+        padding: '12px 16px', borderRadius: 'var(--radius-sm)', marginBottom: '16px',
+        background: isConnected ? 'rgba(37,211,102,0.08)' : 'rgba(239,68,68,0.08)',
+        border: `1px solid ${isConnected ? 'rgba(37,211,102,0.2)' : 'rgba(239,68,68,0.2)'}`,
+        display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {isConnected ? (
+            <Wifi size={18} style={{ color: '#25D366' }} />
+          ) : (
+            <WifiOff size={18} style={{ color: '#ef4444' }} />
+          )}
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: isConnected ? '#25D366' : '#ef4444' }}>
+              {isConnected ? 'WhatsApp Connected' : connectionStatus === 'unknown' ? 'Checking connection...' : 'WhatsApp Not Connected'}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              {isConnected && connectedPhone
+                ? `Connected as +${connectedPhone}`
+                : !isConnected && connectionStatus !== 'unknown'
+                  ? 'Connect your WhatsApp in the AI Assistant page to see conversations'
+                  : ''}
+            </div>
+          </div>
+        </div>
+        {!isConnected && connectionStatus !== 'unknown' && (
+          <button
+            className="btn btn-primary btn-sm"
+            style={{ background: '#25D366', flexShrink: 0, fontSize: '12px' }}
+            onClick={() => navigate('/whatsapp-assistant')}
+          >
+            Connect Now
+          </button>
+        )}
       </div>
 
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '20px' }}>
         <div className="stat-card">
           <div className="stat-card-icon"><MessageCircle size={22} /></div>
           <div className="stat-card-label">Total Conversations</div>
-          <div className="stat-card-value">{totalConversations}</div>
+          <div className="stat-card-value">{filteredConversations.length}</div>
         </div>
         <div className="stat-card">
           <div className="stat-card-icon"><MessageSquare size={22} /></div>
@@ -237,7 +353,7 @@ export default function WhatsAppChatsPage() {
         <div className="stat-card">
           <div className="stat-card-icon"><Clock size={22} /></div>
           <div className="stat-card-label">Total Messages</div>
-          <div className="stat-card-value">{messages.length}</div>
+          <div className="stat-card-value">{totalMessages}</div>
         </div>
       </div>
 
@@ -258,64 +374,109 @@ export default function WhatsAppChatsPage() {
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Loading conversations...</div>
-        ) : sortedConversations.length === 0 ? (
+        ) : filteredConversations.length === 0 ? (
           <div className="empty-state" style={{ padding: '60px 20px' }}>
-            <div className="empty-state-icon"><MessageCircle size={48} strokeWidth={1.5} /></div>
-            <div className="empty-state-title">No conversations yet</div>
-            <div className="empty-state-text">
-              {searchQuery
-                ? 'No conversations match your search.'
-                : 'When customers message your WhatsApp AI, their conversations will appear here.'}
+            <div className="empty-state-icon">
+              {!isConnected ? <WifiOff size={48} strokeWidth={1.5} /> : <MessageCircle size={48} strokeWidth={1.5} />}
             </div>
+            <div className="empty-state-title">
+              {!isConnected ? 'WhatsApp Not Connected' : 'No conversations yet'}
+            </div>
+            <div className="empty-state-text">
+              {!isConnected
+                ? 'Connect your WhatsApp number in the AI Assistant page first. Once connected, customer conversations will appear here automatically.'
+                : searchQuery
+                  ? 'No conversations match your search.'
+                  : 'When customers message your WhatsApp AI, their conversations will appear here.'}
+            </div>
+            {!isConnected && (
+              <button
+                className="btn btn-primary btn-sm"
+                style={{ marginTop: '16px', background: '#25D366' }}
+                onClick={() => navigate('/whatsapp-assistant')}
+              >
+                Go to AI Assistant
+              </button>
+            )}
           </div>
         ) : (
           <div>
-            {sortedConversations.map(conv => (
-              <div
-                key={conv.phone}
-                onClick={() => setSelectedPhone(conv.phone)}
-                style={{
-                  padding: '14px 16px',
-                  cursor: 'pointer',
-                  borderBottom: '1px solid var(--border)',
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    width: '44px', height: '44px', borderRadius: '50%',
-                    background: 'rgba(37,211,102,0.15)', color: '#25d366',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  }}>
-                    <User size={22} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                      <span style={{ fontWeight: 600, fontSize: '14px' }}>{formatPhone(conv.phone)}</span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0 }}>
-                        {conv.lastTime ? timeAgo(conv.lastTime) : ''}
-                      </span>
-                    </div>
+            {filteredConversations.map(conv => {
+              const displayName = conv.name && conv.name !== 'there'
+                ? conv.name
+                : formatPhone(conv.phone)
+              const lastMsg = conv.messages[conv.messages.length - 1]
+
+              return (
+                <div
+                  key={conv.phone}
+                  onClick={() => setSelectedPhone(conv.phone)}
+                  style={{
+                    padding: '14px 16px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid var(--border)',
+                    transition: 'background 0.15s',
+                    opacity: deleting === conv.phone ? 0.5 : 1,
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{
-                      fontSize: '13px', color: 'var(--text-muted)',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      width: '44px', height: '44px', borderRadius: '50%',
+                      background: 'rgba(37,211,102,0.15)',
+                      color: '#25d366',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
-                      {conv.lastMessage?.direction === 'outbound' ? 'Bot: ' : ''}
-                      {conv.lastMessage?.text?.slice(0, 60)}
+                      <User size={22} />
                     </div>
-                  </div>
-                  <div style={{
-                    background: 'rgba(59,130,246,0.2)', color: 'var(--accent-bright)',
-                    fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px',
-                    flexShrink: 0,
-                  }}>
-                    {conv.messages.length}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                        <span style={{ fontWeight: 600, fontSize: '14px' }}>{displayName}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0 }}>
+                          {conv.lastMessage ? timeAgo(conv.lastMessage) : ''}
+                        </span>
+                      </div>
+                      {displayName !== formatPhone(conv.phone) && (
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                          {formatPhone(conv.phone)}
+                        </div>
+                      )}
+                      <div style={{
+                        fontSize: '13px', color: 'var(--text-muted)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {lastMsg?.direction === 'outbound' ? 'Bot: ' : ''}
+                        {lastMsg?.text?.slice(0, 60)}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                      <div style={{
+                        background: 'rgba(59,130,246,0.2)', color: 'var(--accent-bright)',
+                        fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '10px',
+                      }}>
+                        {conv.messages.length}
+                      </div>
+                      <button
+                        onClick={(e) => handleDeleteConversation(conv.phone, e)}
+                        disabled={deleting === conv.phone}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          padding: '4px', borderRadius: '4px', color: 'var(--text-muted)',
+                          display: 'flex', alignItems: 'center',
+                          transition: 'color 0.15s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                        title="Delete conversation"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

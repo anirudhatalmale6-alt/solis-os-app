@@ -13,7 +13,7 @@ export default function CustomersPage() {
   const [editing, setEditing] = useState(null)
   const [formName, setFormName] = useState('')
   const [formEmail, setFormEmail] = useState('')
-  const [formCountryCode, setFormCountryCode] = useState('+971')
+  const [formCountryCode, setFormCountryCode] = useState('+61')
   const [formPhone, setFormPhone] = useState('')
   const [formNotes, setFormNotes] = useState('')
   const [viewCustomer, setViewCustomer] = useState(null)
@@ -31,37 +31,61 @@ export default function CustomersPage() {
   useEffect(() => { loadData() }, [user])
 
   const COUNTRY_CODES = [
+    { code: '+61', label: 'Australia', flag: '\u{1F1E6}\u{1F1FA}' },
+    { code: '+1', label: 'US / Canada', flag: '\u{1F1FA}\u{1F1F8}' },
+    { code: '+44', label: 'United Kingdom', flag: '\u{1F1EC}\u{1F1E7}' },
+    { code: '+33', label: 'France', flag: '\u{1F1EB}\u{1F1F7}' },
+    { code: '+49', label: 'Germany', flag: '\u{1F1E9}\u{1F1EA}' },
+    { code: '+39', label: 'Italy', flag: '\u{1F1EE}\u{1F1F9}' },
+    { code: '+34', label: 'Spain', flag: '\u{1F1EA}\u{1F1F8}' },
+    { code: '+81', label: 'Japan', flag: '\u{1F1EF}\u{1F1F5}' },
+    { code: '+82', label: 'South Korea', flag: '\u{1F1F0}\u{1F1F7}' },
+    { code: '+86', label: 'China', flag: '\u{1F1E8}\u{1F1F3}' },
+    { code: '+91', label: 'India', flag: '\u{1F1EE}\u{1F1F3}' },
     { code: '+971', label: 'UAE', flag: '\u{1F1E6}\u{1F1EA}' },
-    { code: '+966', label: 'KSA', flag: '\u{1F1F8}\u{1F1E6}' },
-    { code: '+973', label: 'BHR', flag: '\u{1F1E7}\u{1F1ED}' },
-    { code: '+974', label: 'QAT', flag: '\u{1F1F6}\u{1F1E6}' },
-    { code: '+968', label: 'OMN', flag: '\u{1F1F4}\u{1F1F2}' },
-    { code: '+965', label: 'KWT', flag: '\u{1F1F0}\u{1F1FC}' },
-    { code: '+20', label: 'EGY', flag: '\u{1F1EA}\u{1F1EC}' },
-    { code: '+962', label: 'JOR', flag: '\u{1F1EF}\u{1F1F4}' },
-    { code: '+961', label: 'LBN', flag: '\u{1F1F1}\u{1F1E7}' },
-    { code: '+964', label: 'IRQ', flag: '\u{1F1EE}\u{1F1F6}' },
-    { code: '+91', label: 'IND', flag: '\u{1F1EE}\u{1F1F3}' },
-    { code: '+92', label: 'PAK', flag: '\u{1F1F5}\u{1F1F0}' },
-    { code: '+63', label: 'PHL', flag: '\u{1F1F5}\u{1F1ED}' },
-    { code: '+44', label: 'UK', flag: '\u{1F1EC}\u{1F1E7}' },
-    { code: '+1', label: 'US', flag: '\u{1F1FA}\u{1F1F8}' },
-    { code: '+33', label: 'FRA', flag: '\u{1F1EB}\u{1F1F7}' },
-    { code: '+49', label: 'DEU', flag: '\u{1F1E9}\u{1F1EA}' },
-    { code: '+61', label: 'AUS', flag: '\u{1F1E6}\u{1F1FA}' },
-    { code: '+86', label: 'CHN', flag: '\u{1F1E8}\u{1F1F3}' },
-    { code: '+81', label: 'JPN', flag: '\u{1F1EF}\u{1F1F5}' },
-    { code: '+82', label: 'KOR', flag: '\u{1F1F0}\u{1F1F7}' },
-    { code: '+55', label: 'BRA', flag: '\u{1F1E7}\u{1F1F7}' },
-    { code: '+234', label: 'NGA', flag: '\u{1F1F3}\u{1F1EC}' },
-    { code: '+27', label: 'ZAF', flag: '\u{1F1FF}\u{1F1E6}' },
-    { code: '+90', label: 'TUR', flag: '\u{1F1F9}\u{1F1F7}' },
+    { code: '+966', label: 'Saudi Arabia', flag: '\u{1F1F8}\u{1F1E6}' },
+    { code: '+20', label: 'Egypt', flag: '\u{1F1EA}\u{1F1EC}' },
+    { code: '+27', label: 'South Africa', flag: '\u{1F1FF}\u{1F1E6}' },
+    { code: '+55', label: 'Brazil', flag: '\u{1F1E7}\u{1F1F7}' },
+    { code: '+52', label: 'Mexico', flag: '\u{1F1F2}\u{1F1FD}' },
+    { code: '+64', label: 'New Zealand', flag: '\u{1F1F3}\u{1F1FF}' },
+    { code: '+353', label: 'Ireland', flag: '\u{1F1EE}\u{1F1EA}' },
+    { code: '+31', label: 'Netherlands', flag: '\u{1F1F3}\u{1F1F1}' },
+    { code: '+46', label: 'Sweden', flag: '\u{1F1F8}\u{1F1EA}' },
+    { code: '+47', label: 'Norway', flag: '\u{1F1F3}\u{1F1F4}' },
+    { code: '+45', label: 'Denmark', flag: '\u{1F1E9}\u{1F1F0}' },
+    { code: '+358', label: 'Finland', flag: '\u{1F1EB}\u{1F1EE}' },
+    { code: '+43', label: 'Austria', flag: '\u{1F1E6}\u{1F1F9}' },
+    { code: '+41', label: 'Switzerland', flag: '\u{1F1E8}\u{1F1ED}' },
+    { code: '+48', label: 'Poland', flag: '\u{1F1F5}\u{1F1F1}' },
+    { code: '+30', label: 'Greece', flag: '\u{1F1EC}\u{1F1F7}' },
+    { code: '+90', label: 'Turkey', flag: '\u{1F1F9}\u{1F1F7}' },
+    { code: '+7', label: 'Russia', flag: '\u{1F1F7}\u{1F1FA}' },
+    { code: '+62', label: 'Indonesia', flag: '\u{1F1EE}\u{1F1E9}' },
+    { code: '+60', label: 'Malaysia', flag: '\u{1F1F2}\u{1F1FE}' },
+    { code: '+65', label: 'Singapore', flag: '\u{1F1F8}\u{1F1EC}' },
+    { code: '+66', label: 'Thailand', flag: '\u{1F1F9}\u{1F1ED}' },
+    { code: '+84', label: 'Vietnam', flag: '\u{1F1FB}\u{1F1F3}' },
+    { code: '+63', label: 'Philippines', flag: '\u{1F1F5}\u{1F1ED}' },
+    { code: '+92', label: 'Pakistan', flag: '\u{1F1F5}\u{1F1F0}' },
+    { code: '+880', label: 'Bangladesh', flag: '\u{1F1E7}\u{1F1E9}' },
+    { code: '+94', label: 'Sri Lanka', flag: '\u{1F1F1}\u{1F1F0}' },
+    { code: '+961', label: 'Lebanon', flag: '\u{1F1F1}\u{1F1E7}' },
+    { code: '+962', label: 'Jordan', flag: '\u{1F1EF}\u{1F1F4}' },
+    { code: '+972', label: 'Israel', flag: '\u{1F1EE}\u{1F1F1}' },
+    { code: '+974', label: 'Qatar', flag: '\u{1F1F6}\u{1F1E6}' },
+    { code: '+968', label: 'Oman', flag: '\u{1F1F4}\u{1F1F2}' },
+    { code: '+973', label: 'Bahrain', flag: '\u{1F1E7}\u{1F1ED}' },
+    { code: '+965', label: 'Kuwait', flag: '\u{1F1F0}\u{1F1FC}' },
+    { code: '+254', label: 'Kenya', flag: '\u{1F1F0}\u{1F1EA}' },
+    { code: '+234', label: 'Nigeria', flag: '\u{1F1F3}\u{1F1EC}' },
+    { code: '+233', label: 'Ghana', flag: '\u{1F1EC}\u{1F1ED}' },
   ]
 
   const resetForm = () => {
     setFormName('')
     setFormEmail('')
-    setFormCountryCode('+971')
+    setFormCountryCode('+61')
     setFormPhone('')
     setFormNotes('')
     setEditing(null)
@@ -77,12 +101,12 @@ export default function CustomersPage() {
     setFormName(c.name)
     setFormEmail(c.email || '')
     const phone = c.phone || ''
-    const matched = COUNTRY_CODES.find(cc => phone.startsWith(cc.code))
+    const matched = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length).find(cc => phone.startsWith(cc.code))
     if (matched) {
       setFormCountryCode(matched.code)
       setFormPhone(phone.slice(matched.code.length).replace(/^\s+/, ''))
     } else {
-      setFormCountryCode('+971')
+      setFormCountryCode('+61')
       setFormPhone(phone)
     }
     setFormNotes(c.notes || '')
@@ -362,10 +386,10 @@ export default function CustomersPage() {
                   className="form-input"
                   value={formCountryCode}
                   onChange={e => setFormCountryCode(e.target.value)}
-                  style={{ width: '110px', flexShrink: 0, fontSize: '13px' }}
+                  style={{ width: '180px', flexShrink: 0, fontSize: '13px' }}
                 >
                   {COUNTRY_CODES.map(cc => (
-                    <option key={cc.code} value={cc.code}>{cc.flag} {cc.code} {cc.label}</option>
+                    <option key={cc.code} value={cc.code}>{cc.flag} {cc.label} ({cc.code})</option>
                   ))}
                 </select>
                 <input type="tel" className="form-input" placeholder="50 123 4567" value={formPhone} onChange={e => setFormPhone(e.target.value)} style={{ flex: 1 }} />

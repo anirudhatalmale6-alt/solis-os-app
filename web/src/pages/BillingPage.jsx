@@ -8,15 +8,15 @@ const API_URL = import.meta.env.VITE_PAYMENTS_API_URL || 'https://api.solis-os.c
 const SQUARE_APP_ID = import.meta.env.VITE_SQUARE_APP_ID || 'sq0idp-TNCbQOgIZDasfiqCWDl66Q'
 const SQUARE_LOCATION_ID = import.meta.env.VITE_SQUARE_LOCATION_ID || 'L4DA19MTFT1HX'
 const TRIAL_DAYS = 14
-const PLAN_PRICE = 29
+const PLAN_PRICE = 39
 
-function getTrialInfo(subscription) {
-  if (!subscription?.trial_start) return { daysLeft: TRIAL_DAYS, expired: false }
-  const start = new Date(subscription.trial_start)
-  const end = new Date(start.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000)
+function getTrialInfo(business) {
+  if (!business?.created_at) return { daysLeft: TRIAL_DAYS, expired: false }
+  const start = new Date(business.created_at)
   const now = new Date()
-  const diff = end - now
-  const daysLeft = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+  const elapsed = Math.floor((now - start) / (1000 * 60 * 60 * 24))
+  const daysLeft = Math.max(0, TRIAL_DAYS - elapsed)
+  const end = new Date(start.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000)
   return { daysLeft, expired: daysLeft <= 0, trialEnd: end }
 }
 
@@ -38,37 +38,32 @@ export default function BillingPage() {
       const biz = await dataStore.getBusiness(user.id)
       if (biz) {
         setBusiness(biz)
-        let sub = null
-        const raw = syncedGet(biz.id, 'subscription')
-        if (raw) {
-          try { sub = JSON.parse(raw) } catch {}
-        }
-        if (!sub) {
-          const cloud = await fetchFromCloud(biz.id, 'subscription')
-          if (cloud) sub = cloud
-        }
-        if (!sub) {
-          sub = {
+
+        // Server is source of truth for subscription status
+        let serverSub = null
+        try {
+          const resp = await fetch(`${API_URL}/api/dashboard/subscription-status/${encodeURIComponent(user.email)}`)
+          if (resp.ok) {
+            const data = await resp.json()
+            if (data.subscribed && data.subscription) {
+              serverSub = { ...data.subscription, status: 'active', plan: 'all_access', price: PLAN_PRICE }
+            }
+          }
+        } catch {}
+
+        if (serverSub) {
+          setSubscription(serverSub)
+          syncedSet(biz.id, 'subscription', serverSub)
+        } else {
+          // No active server subscription - check local for trial info only
+          const trial = {
             status: 'trialing',
-            trial_start: new Date().toISOString(),
+            trial_start: biz.created_at || new Date().toISOString(),
             plan: 'all_access',
             price: PLAN_PRICE,
           }
-          syncedSet(biz.id, 'subscription', sub)
-        }
-        setSubscription(sub)
-        if (sub.status === 'active' || sub.square_subscription_id) {
-          try {
-            const resp = await fetch(`${API_URL}/api/subscription/${biz.id}`)
-            if (resp.ok) {
-              const data = await resp.json()
-              if (data.subscription) {
-                const updated = { ...sub, ...data.subscription }
-                setSubscription(updated)
-                syncedSet(biz.id, 'subscription', updated)
-              }
-            }
-          } catch {}
+          setSubscription(trial)
+          syncedSet(biz.id, 'subscription', trial)
         }
       }
       setLoading(false)
@@ -147,8 +142,8 @@ export default function BillingPage() {
       setSubscription(updated)
       syncedSet(business.id, 'subscription', updated)
       setShowPaymentForm(false)
-      setSuccess('Subscription activated! You now have full access to Solis OS.')
-      setTimeout(() => setSuccess(null), 5000)
+      const nextDate = data.current_period_end ? new Date(data.current_period_end).toLocaleDateString('en-AU', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'
+      setSuccess(`Payment successful! Your Solis OS Dashboard subscription is now active.\n\nAmount: $${PLAN_PRICE} AUD\nNext billing date: ${nextDate}\nAccount: ${user.email}\n\nA confirmation has been sent to your email. You now have full access to all features.`)
     } catch (e) {
       setError(e.message || 'Payment failed. Please try again.')
     } finally {
@@ -157,22 +152,22 @@ export default function BillingPage() {
   }
 
   const handleCancel = async () => {
-    if (!business || !subscription?.square_subscription_id) return
+    if (!user?.email) return
     if (!confirm('Are you sure you want to cancel your subscription? You will keep access until the end of your current billing period.')) return
 
     try {
-      const resp = await fetch(`${API_URL}/api/cancel`, {
+      const resp = await fetch(`${API_URL}/api/dashboard/cancel-subscription`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          business_id: business.id,
-          subscription_id: subscription.square_subscription_id,
-        }),
+        body: JSON.stringify({ email: user.email }),
       })
       if (resp.ok) {
-        const updated = { ...subscription, status: 'canceled', canceled_at: new Date().toISOString() }
+        const data = await resp.json()
+        const updated = { ...subscription, status: 'canceled', canceled_at: new Date().toISOString(), current_period_end: data.access_until || subscription.current_period_end }
         setSubscription(updated)
         syncedSet(business.id, 'subscription', updated)
+      } else {
+        setError('Failed to cancel. Please try again.')
       }
     } catch {
       setError('Failed to cancel. Please try again.')
@@ -187,7 +182,7 @@ export default function BillingPage() {
     )
   }
 
-  const trial = getTrialInfo(subscription)
+  const trial = getTrialInfo(business)
   const isActive = subscription?.status === 'active'
   const isTrial = subscription?.status === 'trialing' && !trial.expired
   const isCanceled = subscription?.status === 'canceled'
@@ -206,8 +201,8 @@ export default function BillingPage() {
           background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)',
           display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--green)',
         }}>
-          <Check size={18} />
-          <span style={{ fontSize: '14px' }}>{success}</span>
+          <Check size={18} style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: '14px', whiteSpace: 'pre-line' }}>{success}</span>
         </div>
       )}
 

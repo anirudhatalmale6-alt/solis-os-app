@@ -73,7 +73,7 @@ export default function ResetPasswordPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <img src="/logo-full.png" alt="Solis OS" style={{ height: '130px', width: 'auto' }} />
+          <img src="/logo-full.png" alt="Solis OS" style={{ height: '80px', width: 'auto' }} />
         </div>
         <h1 className="auth-title">Set new password</h1>
         <p className="auth-subtitle">Enter your new password below</p>

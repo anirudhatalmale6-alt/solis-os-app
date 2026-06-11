@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Copy, Check, Bell, Clock, Star, Send } from 'lucide-react'
+import { Copy, Check, Bell, Clock, Star, Send, X, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
 import { syncedSet } from '../lib/cloudSync'
@@ -26,6 +26,8 @@ export default function SettingsPage() {
   const [followupHours, setFollowupHours] = useState(2)
   const [reviewRequest, setReviewRequest] = useState(false)
   const [reminderSaved, setReminderSaved] = useState(false)
+  const [cancelModal, setCancelModal] = useState(null)
+  const [cancelLoading, setCancelLoading] = useState(false)
 
   // Business fields
   const [name, setName] = useState('')
@@ -38,6 +40,7 @@ export default function SettingsPage() {
   const [timezone, setTimezone] = useState('')
   const [currency, setCurrency] = useState('USD')
   const [whatsappNumber, setWhatsappNumber] = useState('')
+  const [slug, setSlug] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -46,6 +49,7 @@ export default function SettingsPage() {
       if (biz) {
         setBusiness(biz)
         setName(biz.name || '')
+        setSlug(biz.slug || '')
         setIndustry(biz.industry || 'salon')
         setPhone(biz.phone || '')
         setEmail(biz.email || '')
@@ -61,26 +65,38 @@ export default function SettingsPage() {
             setWhatsappNumber(waData.whatsapp_number || '')
           }
         } catch {}
-        const reminders = localStorage.getItem(`reminders_${biz.id}`)
-        if (reminders) {
-          const rc = JSON.parse(reminders)
-          setReminderEnabled(rc.reminder_enabled || false)
-          setReminderHours(rc.reminder_hours || 24)
-          setFollowupEnabled(rc.followup_enabled || false)
-          setFollowupHours(rc.followup_hours || 2)
-          setReviewRequest(rc.review_request || false)
-        }
+        try {
+          const rmResp = await fetch(`${API_BASE}/api/reminders/config/${biz.id}`)
+          if (rmResp.ok) {
+            const rc = await rmResp.json()
+            setReminderEnabled(rc.reminder_enabled || false)
+            setReminderHours(rc.reminder_hours || 24)
+            setFollowupEnabled(rc.followup_enabled || false)
+            setFollowupHours(rc.followup_hours || 2)
+            setReviewRequest(rc.review_request || false)
+          }
+        } catch {}
       }
     }
     loadData()
   }, [user])
 
+  const formatSlug = (val) => val.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 40)
+
   const handleSave = async () => {
     if (!business) return
-    await dataStore.updateBusiness(business.id, {
-      name, industry, phone, email,
+    const cleanSlug = formatSlug(slug)
+    if (!cleanSlug) return
+    setSlug(cleanSlug)
+    const result = await dataStore.updateBusiness(business.id, {
+      name, slug: cleanSlug, industry, phone, email,
       address, city, country, timezone, currency,
     })
+    if (result?.error?.message?.includes('slug')) {
+      setSaved(false)
+      alert('That URL is already taken. Please choose a different one.')
+      return
+    }
     try {
       await fetch(`${API_BASE}/api/whatsapp/${business.id}`, {
         method: 'POST',
@@ -121,6 +137,25 @@ export default function SettingsPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Booking URL</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)', background: 'var(--input-bg)', padding: '10px 10px', borderRadius: 'var(--radius-sm) 0 0 var(--radius-sm)', border: '1px solid var(--border)', borderRight: 'none', whiteSpace: 'nowrap' }}>
+                app.solis-os.com/book/
+              </span>
+              <input
+                type="text"
+                className="form-input"
+                style={{ borderRadius: '0 var(--radius-sm) var(--radius-sm) 0', flex: 1 }}
+                value={slug}
+                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                placeholder="your-business-name"
+              />
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Only lowercase letters, numbers, and dashes
+            </div>
           </div>
           <div className="form-group">
             <label className="form-label">Industry</label>
@@ -225,7 +260,7 @@ export default function SettingsPage() {
           {reminderSaved && <span className="badge badge-green">Saved</span>}
         </div>
         <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: '1.6' }}>
-          Configure automatic WhatsApp messages for appointment reminders, follow-ups, and review requests.
+          Automatic WhatsApp messages for appointment reminders, follow-ups, and review requests.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -287,18 +322,107 @@ export default function SettingsPage() {
         </div>
 
         <div style={{ marginTop: '20px' }}>
-          <button className="btn btn-primary btn-sm" onClick={() => {
+          <button className="btn btn-primary btn-sm" onClick={async () => {
             if (!business) return
-            const config = { reminder_enabled: reminderEnabled, reminder_hours: reminderHours, followup_enabled: followupEnabled, followup_hours: followupHours, review_request: reviewRequest }
-            localStorage.setItem(`reminders_${business.id}`, JSON.stringify(config))
-            syncedSet(business.id, 'reminders', config)
-            setReminderSaved(true)
-            setTimeout(() => setReminderSaved(false), 3000)
+            try {
+              await fetch(`${API_BASE}/api/reminders/config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ businessId: business.id, reminder_enabled: reminderEnabled, reminder_hours: reminderHours, followup_enabled: followupEnabled, followup_hours: followupHours, review_request: reviewRequest }),
+              })
+              setReminderSaved(true)
+              setTimeout(() => setReminderSaved(false), 3000)
+            } catch {}
           }}>
             Save Reminder Settings
           </button>
         </div>
       </div>
+
+      {/* Subscription */}
+      <div className="card">
+        <div className="card-title">Subscription</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+            Manage your Solis OS Dashboard subscription from the <a href="/billing" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>Billing page</a>.
+          </div>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <a href="/billing" className="btn btn-primary btn-sm" style={{ textDecoration: 'none' }}>
+              Manage Billing
+            </a>
+            <button className="btn btn-danger btn-sm" onClick={() => setCancelModal('confirm')}>
+              Cancel Subscription
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Cancel Modal */}
+      {cancelModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={() => !cancelLoading && setCancelModal(null)}>
+          <div style={{ background: 'var(--bg-primary, #fff)', borderRadius: '16px', padding: '32px', maxWidth: '420px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', position: 'relative' }} onClick={e => e.stopPropagation()}>
+            {!cancelLoading && cancelModal !== 'done' && cancelModal !== 'error' && (
+              <button onClick={() => setCancelModal(null)} style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}><X size={20} /></button>
+            )}
+
+            {cancelModal === 'confirm' && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239,68,68,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <AlertTriangle size={28} style={{ color: '#ef4444' }} />
+                </div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 8px', fontFamily: 'var(--font-display)' }}>Cancel Subscription?</h3>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 24px' }}>
+                  Are you sure? You will keep full access until the end of your current billing period. No further charges will be made.
+                </p>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={() => setCancelModal(null)} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid var(--border, #e5e7eb)', background: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer', color: 'var(--text-primary)' }}>Keep Subscription</button>
+                  <button onClick={async () => {
+                    setCancelLoading(true)
+                    try {
+                      const resp = await fetch(`${API_BASE}/api/dashboard/cancel-subscription`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user?.email }) })
+                      const data = await resp.json()
+                      if (resp.ok) { setCancelModal(data.access_until ? new Date(data.access_until).toLocaleDateString('en-AU', { year: 'numeric', month: 'long', day: 'numeric' }) : 'done') }
+                      else { setCancelModal('error') }
+                    } catch { setCancelModal('error') }
+                    setCancelLoading(false)
+                  }} disabled={cancelLoading} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', opacity: cancelLoading ? 0.6 : 1 }}>
+                    {cancelLoading ? 'Cancelling...' : 'Yes, Cancel'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {cancelModal === 'error' && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239,68,68,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <X size={28} style={{ color: '#ef4444' }} />
+                </div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 8px' }}>Something Went Wrong</h3>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '0 0 20px' }}>Could not cancel your subscription. Please try again or contact support at Solis.os.support@gmail.com</p>
+                <button onClick={() => setCancelModal(null)} className="btn btn-primary btn-sm" style={{ width: '100%' }}>Close</button>
+              </div>
+            )}
+
+            {cancelModal !== 'confirm' && cancelModal !== 'error' && cancelModal !== 'done' && !cancelLoading && cancelModal && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(34,197,94,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <CheckCircle2 size={28} style={{ color: '#16a34a' }} />
+                </div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 8px', fontFamily: 'var(--font-display)' }}>Subscription Cancelled</h3>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 8px' }}>
+                  Your subscription has been cancelled successfully.
+                </p>
+                <div style={{ background: 'var(--bg, #f7f8fc)', borderRadius: '10px', padding: '16px', margin: '16px 0' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>You have full access until</div>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'var(--font-display)' }}>{cancelModal}</div>
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 20px' }}>No further charges will be made to your card. We hope to see you again!</p>
+                <button onClick={() => setCancelModal(null)} className="btn btn-primary btn-sm" style={{ width: '100%' }}>Got It</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Account Info */}
       <div className="card">

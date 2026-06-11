@@ -191,6 +191,18 @@ export default function DashboardPage() {
       }
     }
     loadData()
+
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('payment') === 'success' && params.get('product') === 'dashboard') {
+      const email = params.get('email') || user.email
+      fetch('https://api.solis-os.com/api/dashboard/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      }).then(() => {
+        window.history.replaceState({}, '', '/dashboard')
+      }).catch(() => {})
+    }
   }, [user])
 
   const firstName = user?.full_name?.split(' ')[0] || 'there'
