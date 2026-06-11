@@ -248,8 +248,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* WhatsApp AI Bot - moved to its own page */}
-
       {/* Automated Reminders */}
       <div className="card">
         <div className="card-title">

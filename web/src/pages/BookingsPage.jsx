@@ -43,16 +43,18 @@ export default function BookingsPage() {
   const [newTime, setNewTime] = useState('10:00')
   const [recurring, setRecurring] = useState('none')
   const [recurringCount, setRecurringCount] = useState(4)
+  const [upcoming, setUpcoming] = useState([])
 
   const loadData = async () => {
     if (!user) return
     const biz = await dataStore.getBusiness(user.id)
     if (biz) {
       setBusiness(biz)
-      const [dayBookings, svcs, custs] = await Promise.all([
+      const [dayBookings, svcs, custs, allBookings] = await Promise.all([
         dataStore.getBookingsByDate(biz.id, selectedDate),
         dataStore.getServices(biz.id),
         dataStore.getCustomers(biz.id),
+        dataStore.getBookings(biz.id),
       ])
       const sMap = {}
       for (const s of svcs) sMap[s.id] = s.name
@@ -60,6 +62,12 @@ export default function BookingsPage() {
       setServices(svcs)
       setCustomers(custs)
       setBookings(dayBookings.sort((a, b) => (a.time || '').localeCompare(b.time || '')))
+      const today = todayStr()
+      const futureBookings = allBookings
+        .filter(b => b.date >= today && b.status === 'confirmed')
+        .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+        .slice(0, 10)
+      setUpcoming(futureBookings)
     }
   }
 
@@ -231,6 +239,36 @@ export default function BookingsPage() {
           <div className="stat-card-value">{confirmedCount}</div>
         </div>
       </div>
+
+      {upcoming.length > 0 && (
+        <div className="card" style={{ marginBottom: '20px', padding: '16px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CalendarCheck size={16} style={{ color: 'var(--amber)' }} /> Upcoming Confirmed Bookings
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {upcoming.map(b => (
+              <div key={b.id}
+                onClick={() => setSelectedDate(b.date)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px',
+                  background: 'var(--bg)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+                  cursor: 'pointer', fontSize: '13px',
+                }}
+              >
+                <span style={{ fontWeight: 600, color: 'var(--amber)', minWidth: '80px' }}>
+                  {new Date(b.date + 'T00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                </span>
+                <span style={{ color: 'var(--text-muted)' }}>{formatTime12(b.time)}</span>
+                <span style={{ flex: 1, fontWeight: 500 }}>{b.customer_name}</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{serviceMap[b.service_id] || 'Service'}</span>
+                {b.notes?.includes('WhatsApp') && (
+                  <span style={{ fontSize: '11px', color: '#25d366', fontWeight: 600 }}>WA</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="date-nav">
         <button className="date-nav-btn" onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}>

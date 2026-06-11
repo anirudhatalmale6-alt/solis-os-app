@@ -2,11 +2,17 @@ import { useEffect, useState, useRef } from 'react'
 import {
   FileText, Plus, Send, CheckCircle2, Clock, X,
   Download, Eye, DollarSign, Printer, Copy, Check,
-  MessageCircle, Mail, Image, Percent, ChevronDown, Pencil,
+  MessageCircle, Mail, Image, Percent, ChevronDown, Pencil, Palette,
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
 import { syncedSet } from '../lib/cloudSync'
+
+const INVOICE_TEMPLATES = [
+  { id: 'classic', name: 'Classic', desc: 'Clean and professional' },
+  { id: 'modern', name: 'Modern', desc: 'Contemporary with blue accents' },
+  { id: 'elegant', name: 'Elegant', desc: 'Minimal and sophisticated' },
+]
 
 function generateInvoiceNumber() {
   const d = new Date()
@@ -35,6 +41,222 @@ function dueIn30() {
 
 const API_BASE = 'https://api.solis-os.com'
 
+function buildInvoiceHTML(inv, sym, templateId = 'classic', bizName, bizEmail, bizPhone, bizAddress) {
+  const sub = inv.items.reduce((s, i) => s + i.qty * i.price, 0)
+  const taxAmt = inv.tax_enabled ? sub * (inv.tax_rate / 100) : 0
+  const discAmt = inv.discount ? sub * (inv.discount / 100) : 0
+  const total = sub + taxAmt - discAmt
+  const fromName = inv.business_name || bizName || ''
+  const fromEmail = inv.business_email || bizEmail || ''
+  const fromPhone = inv.business_phone || bizPhone || ''
+  const fromAddr = inv.business_address || bizAddress || ''
+  const logoImg = inv.logo ? `<img src="${inv.logo}" alt="Logo" style="max-height:60px;max-width:120px;display:block" />` : ''
+
+  const itemsHTML = inv.items.map((item, i) => {
+    const rowBg = templateId === 'modern' && i % 2 === 0 ? '#f8fafc' : '#ffffff'
+    return `<tr style="background:${rowBg}">
+      <td style="padding:12px 16px;font-size:14px;border-bottom:1px solid #eee">${item.description}</td>
+      <td style="padding:12px 16px;font-size:14px;border-bottom:1px solid #eee;text-align:center">${item.qty}</td>
+      <td style="padding:12px 16px;font-size:14px;border-bottom:1px solid #eee;text-align:right">${sym}${item.price.toFixed(2)}</td>
+      <td style="padding:12px 16px;font-size:14px;border-bottom:1px solid #eee;text-align:right;font-weight:600">${sym}${(item.qty * item.price).toFixed(2)}</td>
+    </tr>`
+  }).join('')
+
+  const statusColors = { draft: ['#fef3c7', '#92400e'], sent: ['#dbeafe', '#1e40af'], paid: ['#d1fae5', '#065f46'], overdue: ['#fee2e2', '#991b1b'] }
+  const [stBg, stFg] = statusColors[inv.status] || statusColors.draft
+
+  const totalsHTML = `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px">
+      <tr><td style="padding:6px 16px;font-size:14px;text-align:right;color:#666">Subtotal</td><td style="padding:6px 16px;font-size:14px;text-align:right;width:120px">${sym}${sub.toFixed(2)}</td></tr>
+      ${inv.tax_enabled ? `<tr><td style="padding:6px 16px;font-size:14px;text-align:right;color:#666">Tax (${inv.tax_rate}%)</td><td style="padding:6px 16px;font-size:14px;text-align:right">${sym}${taxAmt.toFixed(2)}</td></tr>` : ''}
+      ${inv.discount > 0 ? `<tr><td style="padding:6px 16px;font-size:14px;text-align:right;color:#666">Discount (${inv.discount}%)</td><td style="padding:6px 16px;font-size:14px;text-align:right">-${sym}${discAmt.toFixed(2)}</td></tr>` : ''}
+      <tr><td colspan="2" style="padding:8px 16px"><hr style="border:none;border-top:2px solid ${templateId === 'modern' ? '#2563eb' : templateId === 'elegant' ? '#c8a45a' : '#1a1a1a'};margin:0" /></td></tr>
+      <tr><td style="padding:8px 16px;font-size:20px;font-weight:700;text-align:right;color:${templateId === 'modern' ? '#2563eb' : '#1a1a1a'}">Total</td><td style="padding:8px 16px;font-size:20px;font-weight:700;text-align:right;color:${templateId === 'modern' ? '#2563eb' : '#1a1a1a'}">${sym}${total.toFixed(2)}</td></tr>
+    </table>`
+
+  const notesHTML = inv.notes ? `<div style="margin-top:28px;padding:16px 20px;background:#f9fafb;border-radius:8px;font-size:14px;color:#555;line-height:1.6">${inv.notes}</div>` : ''
+
+  const font = templateId === 'elegant' ? 'Georgia,Times New Roman,serif' : 'Arial,Helvetica,sans-serif'
+
+  if (templateId === 'modern') {
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f0f4ff;font-family:${font}">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4ff;padding:32px 0">
+        <tr><td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+            <tr><td style="background:linear-gradient(135deg,#1e40af,#3b82f6);padding:36px 40px;text-align:center">
+              ${logoImg ? `<div style="margin-bottom:16px">${logoImg.replace('display:block', 'display:inline-block')}</div>` : ''}
+              <div style="font-size:32px;font-weight:700;color:#fff;letter-spacing:3px">INVOICE</div>
+              <div style="font-size:14px;color:rgba(255,255,255,0.75);margin-top:6px">${inv.number}</div>
+              <div style="margin-top:12px"><span style="display:inline-block;padding:4px 16px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;background:rgba(255,255,255,0.2);color:#fff">${inv.status}</span></div>
+            </td></tr>
+            <tr><td style="padding:36px 40px">
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px">
+                <tr>
+                  <td width="50%" style="vertical-align:top">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;font-weight:600;margin-bottom:8px">From</div>
+                    <div style="font-size:15px;font-weight:600;color:#1e293b">${fromName}</div>
+                    ${fromEmail ? `<div style="font-size:13px;color:#64748b;margin-top:3px">${fromEmail}</div>` : ''}
+                    ${fromPhone ? `<div style="font-size:13px;color:#64748b;margin-top:2px">${fromPhone}</div>` : ''}
+                    ${fromAddr ? `<div style="font-size:13px;color:#64748b;margin-top:2px">${fromAddr}</div>` : ''}
+                  </td>
+                  <td width="50%" style="vertical-align:top">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;font-weight:600;margin-bottom:8px">Bill To</div>
+                    <div style="font-size:15px;font-weight:600;color:#1e293b">${inv.customer_name}</div>
+                    ${inv.customer_email ? `<div style="font-size:13px;color:#64748b;margin-top:3px">${inv.customer_email}</div>` : ''}
+                    ${inv.customer_phone ? `<div style="font-size:13px;color:#64748b;margin-top:2px">${inv.customer_phone}</div>` : ''}
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px">
+                <tr>
+                  <td><span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;font-weight:600">Date</span><br/><span style="font-size:14px;color:#334155">${formatDate(inv.created_at)}</span></td>
+                  ${inv.due_date ? `<td><span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;font-weight:600">Due Date</span><br/><span style="font-size:14px;color:#334155">${formatDate(inv.due_date)}</span></td>` : ''}
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0">
+                <tr style="background:#1e40af">
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#fff;text-align:left;font-weight:600">Description</th>
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#fff;text-align:center;font-weight:600;width:60px">Qty</th>
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#fff;text-align:right;font-weight:600;width:90px">Price</th>
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#fff;text-align:right;font-weight:600;width:100px">Total</th>
+                </tr>
+                ${itemsHTML}
+              </table>
+              ${totalsHTML}
+              ${notesHTML}
+            </td></tr>
+            <tr><td style="background:#f8fafc;padding:20px 40px;text-align:center;border-top:1px solid #e2e8f0">
+              <span style="font-size:12px;color:#94a3b8">Powered by Solis OS</span>
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>
+    </body></html>`
+  }
+
+  if (templateId === 'elegant') {
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#faf9f7;font-family:${font}">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf9f7;padding:32px 0">
+        <tr><td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-top:4px solid #c8a45a">
+            <tr><td style="padding:40px 48px 0">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="50%" style="vertical-align:top">${logoImg}</td>
+                  <td width="50%" style="vertical-align:top;text-align:right">
+                    <div style="font-size:36px;font-weight:400;color:#2c2c2c;letter-spacing:4px">INVOICE</div>
+                    <div style="font-size:14px;color:#999;margin-top:6px;letter-spacing:1px">${inv.number}</div>
+                    <div style="margin-top:10px"><span style="display:inline-block;padding:3px 14px;border:1px solid ${stFg};border-radius:3px;font-size:11px;font-weight:600;text-transform:uppercase;color:${stFg};font-family:Arial,sans-serif">${inv.status}</span></div>
+                  </td>
+                </tr>
+              </table>
+            </td></tr>
+            <tr><td style="padding:28px 48px"><hr style="border:none;border-top:1px solid #e8e4dc;margin:0" /></td></tr>
+            <tr><td style="padding:0 48px">
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px">
+                <tr>
+                  <td width="50%" style="vertical-align:top">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#c8a45a;font-weight:600;margin-bottom:10px;font-family:Arial,sans-serif">From</div>
+                    <div style="font-size:16px;font-weight:700;color:#2c2c2c">${fromName}</div>
+                    ${fromEmail ? `<div style="font-size:14px;color:#777;margin-top:4px">${fromEmail}</div>` : ''}
+                    ${fromPhone ? `<div style="font-size:14px;color:#777;margin-top:3px">${fromPhone}</div>` : ''}
+                    ${fromAddr ? `<div style="font-size:14px;color:#777;margin-top:3px">${fromAddr}</div>` : ''}
+                  </td>
+                  <td width="50%" style="vertical-align:top">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#c8a45a;font-weight:600;margin-bottom:10px;font-family:Arial,sans-serif">Bill To</div>
+                    <div style="font-size:16px;font-weight:700;color:#2c2c2c">${inv.customer_name}</div>
+                    ${inv.customer_email ? `<div style="font-size:14px;color:#777;margin-top:4px">${inv.customer_email}</div>` : ''}
+                    ${inv.customer_phone ? `<div style="font-size:14px;color:#777;margin-top:3px">${inv.customer_phone}</div>` : ''}
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px">
+                <tr>
+                  <td><span style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#c8a45a;font-weight:600;font-family:Arial,sans-serif">Date</span><br/><span style="font-size:14px;color:#2c2c2c;margin-top:4px">${formatDate(inv.created_at)}</span></td>
+                  ${inv.due_date ? `<td><span style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#c8a45a;font-weight:600;font-family:Arial,sans-serif">Due Date</span><br/><span style="font-size:14px;color:#2c2c2c">${formatDate(inv.due_date)}</span></td>` : ''}
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px">
+                <tr>
+                  <th style="padding:14px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#999;text-align:left;font-weight:600;border-bottom:2px solid #e8e4dc;font-family:Arial,sans-serif">Description</th>
+                  <th style="padding:14px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#999;text-align:center;font-weight:600;border-bottom:2px solid #e8e4dc;width:60px;font-family:Arial,sans-serif">Qty</th>
+                  <th style="padding:14px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#999;text-align:right;font-weight:600;border-bottom:2px solid #e8e4dc;width:90px;font-family:Arial,sans-serif">Price</th>
+                  <th style="padding:14px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#999;text-align:right;font-weight:600;border-bottom:2px solid #e8e4dc;width:100px;font-family:Arial,sans-serif">Total</th>
+                </tr>
+                ${itemsHTML}
+              </table>
+              ${totalsHTML}
+              ${notesHTML}
+            </td></tr>
+            <tr><td style="padding:32px 48px 24px;text-align:center;border-top:1px solid #e8e4dc;margin-top:40px">
+              <span style="font-size:11px;color:#ccc;letter-spacing:1px;font-family:Arial,sans-serif">Powered by Solis OS</span>
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>
+    </body></html>`
+  }
+
+  // Classic template (default)
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#f5f5f5;font-family:${font}">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 0">
+      <tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border:1px solid #e5e5e5">
+          <tr><td style="padding:40px 40px 0">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td width="50%" style="vertical-align:top">${logoImg}
+                  <div style="font-size:16px;font-weight:700;color:#1a1a1a;margin-top:${logoImg ? '10' : '0'}px">${fromName}</div>
+                  ${fromEmail ? `<div style="font-size:13px;color:#666;margin-top:3px">${fromEmail}</div>` : ''}
+                  ${fromPhone ? `<div style="font-size:13px;color:#666;margin-top:2px">${fromPhone}</div>` : ''}
+                  ${fromAddr ? `<div style="font-size:13px;color:#666;margin-top:2px">${fromAddr}</div>` : ''}
+                </td>
+                <td width="50%" style="vertical-align:top;text-align:right">
+                  <div style="font-size:32px;font-weight:700;color:#1a1a1a;letter-spacing:2px">INVOICE</div>
+                  <div style="font-size:14px;color:#666;margin-top:4px">${inv.number}</div>
+                  <div style="margin-top:10px"><span style="display:inline-block;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;background:${stBg};color:${stFg}">${inv.status}</span></div>
+                </td>
+              </tr>
+            </table>
+          </td></tr>
+          <tr><td style="padding:24px 40px"><hr style="border:none;border-top:2px solid #eee;margin:0" /></td></tr>
+          <tr><td style="padding:0 40px">
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px">
+              <tr>
+                <td width="50%" style="vertical-align:top">
+                  <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#999;font-weight:600;margin-bottom:8px">Bill To</div>
+                  <div style="font-size:16px;font-weight:600;color:#1a1a1a">${inv.customer_name}</div>
+                  ${inv.customer_email ? `<div style="font-size:13px;color:#666;margin-top:4px">${inv.customer_email}</div>` : ''}
+                  ${inv.customer_phone ? `<div style="font-size:13px;color:#666;margin-top:3px">${inv.customer_phone}</div>` : ''}
+                </td>
+                <td width="50%" style="vertical-align:top">
+                  <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#999;font-weight:600;margin-bottom:8px">Date</div>
+                  <div style="font-size:14px;color:#333">${formatDate(inv.created_at)}</div>
+                  ${inv.due_date ? `<div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#999;font-weight:600;margin-top:16px;margin-bottom:8px">Due Date</div><div style="font-size:14px;color:#333">${formatDate(inv.due_date)}</div>` : ''}
+                </td>
+              </tr>
+            </table>
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px">
+              <tr style="border-bottom:2px solid #ddd">
+                <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#888;text-align:left;font-weight:600;border-bottom:2px solid #ccc">Description</th>
+                <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#888;text-align:center;font-weight:600;border-bottom:2px solid #ccc;width:60px">Qty</th>
+                <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#888;text-align:right;font-weight:600;border-bottom:2px solid #ccc;width:90px">Price</th>
+                <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#888;text-align:right;font-weight:600;border-bottom:2px solid #ccc;width:100px">Total</th>
+              </tr>
+              ${itemsHTML}
+            </table>
+            ${totalsHTML}
+            ${notesHTML}
+          </td></tr>
+          <tr><td style="padding:32px 40px 24px;text-align:center;border-top:1px solid #eee;margin-top:40px">
+            <span style="font-size:11px;color:#bbb">Powered by Solis OS</span>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body></html>`
+}
+
 export default function InvoicesPage() {
   const { user } = useAuth()
   const [business, setBusiness] = useState(null)
@@ -62,6 +284,7 @@ export default function InvoicesPage() {
   const [taxRate, setTaxRate] = useState(10)
   const [taxEnabled, setTaxEnabled] = useState(true)
   const [discount, setDiscount] = useState(0)
+  const [template, setTemplate] = useState('classic')
 
   useEffect(() => {
     if (!user) return
@@ -178,6 +401,7 @@ export default function InvoicesPage() {
     setTaxRate(inv.tax_rate ?? 10)
     setTaxEnabled(inv.tax_enabled ?? true)
     setDiscount(inv.discount || 0)
+    setTemplate(inv.template || 'classic')
     setShowCreate(true)
     setViewInvoice(null)
   }
@@ -202,6 +426,7 @@ export default function InvoicesPage() {
         total,
         notes,
         due_date: dueDate || null,
+        template,
         business_name: business?.name || '',
         business_email: business?.email || '',
         business_phone: business?.phone || '',
@@ -235,6 +460,7 @@ export default function InvoicesPage() {
       due_date: dueDate || null,
       status: 'draft',
       created_at: todayStr(),
+      template,
       business_name: business?.name || '',
       business_email: business?.email || '',
       business_phone: business?.phone || '',
@@ -258,6 +484,7 @@ export default function InvoicesPage() {
     setTaxRate(10)
     setTaxEnabled(true)
     setDiscount(0)
+    setTemplate('classic')
   }
 
   const markStatus = (id, status) => {
@@ -452,43 +679,73 @@ export default function InvoicesPage() {
     return canvas
   }
 
+  const [sendingInvoice, setSendingInvoice] = useState(null)
+
   const sendViaWhatsApp = async (inv) => {
     const phone = inv.customer_phone?.replace(/[^0-9]/g, '')
     if (!phone) { alert('No customer phone number on this invoice.'); return }
-    const canvas = await drawInvoiceCanvas(inv)
-    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
-    const file = new File([blob], `Invoice-${inv.number}.png`, { type: 'image/png' })
+    if (!business?.id) { alert('Business not loaded yet.'); return }
 
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({
-          text: `Invoice ${inv.number} - ${sym}${calcInvTotal(inv).toFixed(2)}`,
-          files: [file],
-        })
+    setSendingInvoice('whatsapp')
+    try {
+      const text = buildInvoiceText(inv)
+      const resp = await fetch('https://wa.solis-os.com/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          business_id: business.id,
+          phone,
+          message: text,
+        }),
+      })
+      const data = await resp.json()
+      if (data.success || data.messageId) {
+        alert('Invoice sent via WhatsApp!')
         markStatus(inv.id, 'sent')
-        setShowSendMenu(null)
-        return
-      } catch {}
+      } else {
+        alert('Could not send: ' + (data.error || 'WhatsApp not connected. Connect in the AI Assistant page first.'))
+      }
+    } catch (err) {
+      alert('Failed to send via WhatsApp. Make sure WhatsApp is connected in the AI Assistant page.')
     }
-
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = `Invoice-${inv.number}.png`; a.click()
-    URL.revokeObjectURL(url)
-    setTimeout(() => {
-      window.open(`https://wa.me/${phone}?text=${encodeURIComponent('Hi, please see the attached invoice ' + inv.number + ' for ' + sym + calcInvTotal(inv).toFixed(2))}`, '_blank')
-    }, 500)
-    markStatus(inv.id, 'sent')
+    setSendingInvoice(null)
     setShowSendMenu(null)
   }
 
-  const sendViaEmail = (inv) => {
-    const email = inv.customer_email
-    if (!email) { alert('No customer email on this invoice.'); return }
-    const subject = `Invoice ${inv.number} from ${inv.business_name || business?.name || 'Business'}`
-    const body = buildInvoiceText(inv)
-    window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank')
-    markStatus(inv.id, 'sent')
+  const sendViaEmail = async (inv) => {
+    const custEmail = inv.customer_email
+    if (!custEmail) { alert('No customer email on this invoice.'); return }
+
+    setSendingInvoice('email')
+    try {
+      const bizName = inv.business_name || business?.name || 'Business'
+      const subject = `Invoice ${inv.number} from ${bizName}`
+      const htmlBody = buildInvoiceHTML(
+        inv, sym, inv.template || 'classic',
+        business?.name, business?.email, business?.phone, business?.address
+      )
+      const resp = await fetch(`${API_BASE}/api/send-invoice-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: custEmail,
+          subject,
+          html: htmlBody,
+          from_name: bizName,
+          reply_to: business?.email || '',
+        }),
+      })
+      const data = await resp.json()
+      if (data.success) {
+        alert('Invoice emailed to ' + custEmail + '!')
+        markStatus(inv.id, 'sent')
+      } else {
+        alert('Could not send email: ' + (data.error || 'Unknown error'))
+      }
+    } catch (err) {
+      alert('Failed to send email. Please try again.')
+    }
+    setSendingInvoice(null)
     setShowSendMenu(null)
   }
 
@@ -524,32 +781,52 @@ export default function InvoicesPage() {
   const InvoiceTemplate = ({ inv }) => {
     const invTotal = calcInvTotal(inv)
     const sub = inv.items.reduce((s, i) => s + i.qty * i.price, 0)
+    const tmpl = inv.template || 'classic'
+    const isModern = tmpl === 'modern'
+    const isElegant = tmpl === 'elegant'
+    const accentColor = isModern ? '#2563eb' : isElegant ? '#c8a45a' : '#1a1a1a'
+    const labelColor = isElegant ? '#c8a45a' : '#888'
+    const fontFamily = isElegant ? 'Georgia, Times New Roman, serif' : 'inherit'
     return (
-      <div ref={printRef}>
+      <div ref={printRef} style={{ fontFamily }}>
         {/* Header: logo + invoice title */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', borderBottom: '2px solid #eee', paddingBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {isModern ? (
+          <div style={{ background: 'linear-gradient(135deg, #1e40af, #3b82f6)', borderRadius: '12px', padding: '32px', marginBottom: '32px', textAlign: 'center', color: '#fff' }}>
             {(inv.logo || businessLogo) && (
-              <img src={inv.logo || businessLogo} alt="Logo" style={{ maxHeight: '72px', maxWidth: '72px', objectFit: 'contain', borderRadius: '6px' }} />
+              <img src={inv.logo || businessLogo} alt="Logo" style={{ maxHeight: '56px', maxWidth: '120px', objectFit: 'contain', borderRadius: '6px', marginBottom: '12px' }} />
             )}
-            <div>
-              <div style={{ fontSize: '28px', fontWeight: 700, color: '#1a1a1a', letterSpacing: '2px' }}>INVOICE</div>
-              <div style={{ fontSize: '15px', color: '#555', marginTop: '2px' }}>{inv.number}</div>
+            <div style={{ fontSize: '32px', fontWeight: 700, letterSpacing: '3px' }}>INVOICE</div>
+            <div style={{ fontSize: '15px', opacity: 0.75, marginTop: '4px' }}>{inv.number}</div>
+            <div style={{ marginTop: '10px' }}>
+              <span style={{ display: 'inline-block', padding: '4px 16px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', background: 'rgba(255,255,255,0.2)', color: '#fff' }}>{inv.status}</span>
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <span style={{
-              display: 'inline-block', padding: '4px 14px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
-              background: inv.status === 'paid' ? '#d1fae5' : inv.status === 'sent' ? '#dbeafe' : inv.status === 'overdue' ? '#fee2e2' : '#fef3c7',
-              color: inv.status === 'paid' ? '#065f46' : inv.status === 'sent' ? '#1e40af' : inv.status === 'overdue' ? '#991b1b' : '#92400e',
-            }}>{inv.status}</span>
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', borderBottom: isElegant ? '1px solid #e8e4dc' : '2px solid #eee', paddingBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              {(inv.logo || businessLogo) && (
+                <img src={inv.logo || businessLogo} alt="Logo" style={{ maxHeight: '72px', maxWidth: '72px', objectFit: 'contain', borderRadius: '6px' }} />
+              )}
+              <div>
+                <div style={{ fontSize: isElegant ? '36px' : '28px', fontWeight: isElegant ? 400 : 700, color: '#1a1a1a', letterSpacing: isElegant ? '4px' : '2px' }}>INVOICE</div>
+                <div style={{ fontSize: '15px', color: '#555', marginTop: '2px', letterSpacing: isElegant ? '1px' : undefined }}>{inv.number}</div>
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{
+                display: 'inline-block', padding: isElegant ? '3px 14px' : '4px 14px', borderRadius: isElegant ? '3px' : '20px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
+                background: isElegant ? 'transparent' : (inv.status === 'paid' ? '#d1fae5' : inv.status === 'sent' ? '#dbeafe' : inv.status === 'overdue' ? '#fee2e2' : '#fef3c7'),
+                color: inv.status === 'paid' ? '#065f46' : inv.status === 'sent' ? '#1e40af' : inv.status === 'overdue' ? '#991b1b' : '#92400e',
+                border: isElegant ? `1px solid ${inv.status === 'paid' ? '#065f46' : inv.status === 'sent' ? '#1e40af' : inv.status === 'overdue' ? '#991b1b' : '#92400e'}` : 'none',
+              }}>{inv.status}</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* From / Bill To */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginBottom: '32px' }}>
           <div>
-            <div style={labelStyle}>From</div>
+            <div style={{ ...labelStyle, color: labelColor, letterSpacing: isElegant ? '2px' : '1px' }}>From</div>
             <div style={valStyle}>
               <div style={{ fontWeight: 600 }}>{inv.business_name || business?.name || '--'}</div>
               {(inv.business_email || business?.email) && <div>{inv.business_email || business?.email}</div>}
@@ -558,7 +835,7 @@ export default function InvoicesPage() {
             </div>
           </div>
           <div>
-            <div style={labelStyle}>Bill To</div>
+            <div style={{ ...labelStyle, color: labelColor, letterSpacing: isElegant ? '2px' : '1px' }}>Bill To</div>
             <div style={valStyle}>
               <div style={{ fontWeight: 600 }}>{inv.customer_name}</div>
               {inv.customer_email && <div>{inv.customer_email}</div>}
@@ -566,12 +843,12 @@ export default function InvoicesPage() {
             </div>
             <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <div>
-                <div style={labelStyle}>Date</div>
+                <div style={{ ...labelStyle, color: labelColor, letterSpacing: isElegant ? '2px' : '1px' }}>Date</div>
                 <div style={{ fontSize: '15px' }}>{formatDate(inv.created_at)}</div>
               </div>
               {inv.due_date && (
                 <div>
-                  <div style={labelStyle}>Due Date</div>
+                  <div style={{ ...labelStyle, color: labelColor, letterSpacing: isElegant ? '2px' : '1px' }}>Due Date</div>
                   <div style={{ fontSize: '15px' }}>{formatDate(inv.due_date)}</div>
                 </div>
               )}
@@ -580,18 +857,18 @@ export default function InvoicesPage() {
         </div>
 
         {/* Items table */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px', borderRadius: isModern ? '8px' : undefined, overflow: isModern ? 'hidden' : undefined, border: isModern ? '1px solid #e2e8f0' : undefined }}>
           <thead>
-            <tr style={{ borderBottom: '2px solid #e5e5e5' }}>
-              <th style={{ textAlign: 'left', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: '#888', fontWeight: 600, padding: '12px 10px 12px 0' }}>Description</th>
-              <th style={{ textAlign: 'center', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: '#888', fontWeight: 600, padding: '12px 10px', width: '70px' }}>Qty</th>
-              <th style={{ textAlign: 'right', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: '#888', fontWeight: 600, padding: '12px 10px', width: '100px' }}>Price</th>
-              <th style={{ textAlign: 'right', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px', color: '#888', fontWeight: 600, padding: '12px 0 12px 10px', width: '110px' }}>Total</th>
+            <tr style={{ borderBottom: isModern ? 'none' : `2px solid ${isElegant ? '#e8e4dc' : '#e5e5e5'}`, background: isModern ? '#1e40af' : undefined }}>
+              <th style={{ textAlign: 'left', fontSize: '13px', textTransform: 'uppercase', letterSpacing: isElegant ? '1.5px' : '1px', color: isModern ? '#fff' : labelColor, fontWeight: 600, padding: '12px 10px 12px 0', fontFamily: isElegant ? 'Arial, sans-serif' : undefined }}>Description</th>
+              <th style={{ textAlign: 'center', fontSize: '13px', textTransform: 'uppercase', letterSpacing: isElegant ? '1.5px' : '1px', color: isModern ? '#fff' : labelColor, fontWeight: 600, padding: '12px 10px', width: '70px', fontFamily: isElegant ? 'Arial, sans-serif' : undefined }}>Qty</th>
+              <th style={{ textAlign: 'right', fontSize: '13px', textTransform: 'uppercase', letterSpacing: isElegant ? '1.5px' : '1px', color: isModern ? '#fff' : labelColor, fontWeight: 600, padding: '12px 10px', width: '100px', fontFamily: isElegant ? 'Arial, sans-serif' : undefined }}>Price</th>
+              <th style={{ textAlign: 'right', fontSize: '13px', textTransform: 'uppercase', letterSpacing: isElegant ? '1.5px' : '1px', color: isModern ? '#fff' : labelColor, fontWeight: 600, padding: '12px 0 12px 10px', width: '110px', fontFamily: isElegant ? 'Arial, sans-serif' : undefined }}>Total</th>
             </tr>
           </thead>
           <tbody>
             {inv.items.map((item, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
+              <tr key={i} style={{ borderBottom: '1px solid #f0f0f0', background: isModern && i % 2 === 0 ? '#f8fafc' : undefined }}>
                 <td style={{ padding: '14px 10px 14px 0', fontSize: '16px' }}>{item.description}</td>
                 <td style={{ padding: '14px 10px', fontSize: '16px', textAlign: 'center' }}>{item.qty}</td>
                 <td style={{ padding: '14px 10px', fontSize: '16px', textAlign: 'right' }}>{sym}{item.price.toFixed(2)}</td>
@@ -617,7 +894,7 @@ export default function InvoicesPage() {
                 <span>Discount ({inv.discount}%)</span><span>-{sym}{(sub * inv.discount / 100).toFixed(2)}</span>
               </div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 0 8px', fontSize: '22px', fontWeight: 700, borderTop: '2px solid #1a1a1a', marginTop: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 0 8px', fontSize: '22px', fontWeight: 700, borderTop: `2px solid ${accentColor}`, marginTop: '10px', color: isModern ? accentColor : '#1a1a1a' }}>
               <span>Total</span><span>{sym}{invTotal.toFixed(2)}</span>
             </div>
           </div>
@@ -778,6 +1055,27 @@ export default function InvoicesPage() {
             </div>
           </div>
 
+          {/* Template selector */}
+          <div className="form-group" style={{ marginBottom: '16px' }}>
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Palette size={14} /> Invoice Template
+            </label>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {INVOICE_TEMPLATES.map(t => (
+                <button key={t.id} type="button" onClick={() => setTemplate(t.id)}
+                  style={{
+                    flex: '1 1 140px', padding: '12px 16px', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+                    border: template === t.id ? '2px solid var(--accent)' : '1px solid var(--border)',
+                    background: template === t.id ? 'rgba(59,130,246,0.05)' : 'var(--bg)',
+                    textAlign: 'left', transition: 'all 0.15s',
+                  }}>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: template === t.id ? 'var(--accent)' : 'var(--text)' }}>{t.name}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{t.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Totals bar */}
           <div style={{ padding: '16px', background: 'var(--bg-raised)', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: '24px', fontSize: '13px', color: 'var(--text-secondary)' }}>
@@ -798,28 +1096,30 @@ export default function InvoicesPage() {
       {/* View Invoice */}
       {viewInvoice && (
         <div className="card" style={{ marginBottom: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-display)' }}>{viewInvoice.number}</span>
-              {statusBadge(viewInvoice.status)}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-display)' }}>{viewInvoice.number}</span>
+                {statusBadge(viewInvoice.status)}
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => setViewInvoice(null)}><X size={18} /></button>
             </div>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              {/* Send dropdown */}
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ position: 'relative' }}>
                 <button className="btn btn-primary btn-sm" onClick={() => setShowSendMenu(showSendMenu === viewInvoice.id ? null : viewInvoice.id)} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Send size={14} /> Send <ChevronDown size={12} />
                 </button>
                 {showSendMenu === viewInvoice.id && (
                   <div style={{
-                    position: 'absolute', top: '100%', right: 0, marginTop: '4px', background: 'var(--bg-card)',
-                    border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '4px', minWidth: '180px',
+                    position: 'absolute', top: '100%', left: 0, marginTop: '4px', background: 'var(--bg-card)',
+                    border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '4px', minWidth: '200px',
                     boxShadow: '0 8px 30px rgba(0,0,0,0.3)', zIndex: 10,
                   }}>
-                    <button className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: 'flex-start', gap: '8px', padding: '10px 12px' }} onClick={() => sendViaWhatsApp(viewInvoice)}>
-                      <MessageCircle size={16} style={{ color: '#25D366' }} /> Send via WhatsApp
+                    <button className="btn btn-ghost btn-sm" disabled={!!sendingInvoice} style={{ width: '100%', justifyContent: 'flex-start', gap: '8px', padding: '10px 12px' }} onClick={() => sendViaWhatsApp(viewInvoice)}>
+                      <MessageCircle size={16} style={{ color: '#25D366' }} /> {sendingInvoice === 'whatsapp' ? 'Sending...' : 'Send via WhatsApp'}
                     </button>
-                    <button className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: 'flex-start', gap: '8px', padding: '10px 12px' }} onClick={() => sendViaEmail(viewInvoice)}>
-                      <Mail size={16} style={{ color: 'var(--accent-bright)' }} /> Send via Email
+                    <button className="btn btn-ghost btn-sm" disabled={!!sendingInvoice} style={{ width: '100%', justifyContent: 'flex-start', gap: '8px', padding: '10px 12px' }} onClick={() => sendViaEmail(viewInvoice)}>
+                      <Mail size={16} style={{ color: 'var(--accent-bright)' }} /> {sendingInvoice === 'email' ? 'Sending...' : 'Send via Email'}
                     </button>
                     <button className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: 'flex-start', gap: '8px', padding: '10px 12px' }} onClick={() => copyInvoice(viewInvoice)}>
                       {copied ? <Check size={16} style={{ color: 'var(--green)' }} /> : <Copy size={16} />}
@@ -840,15 +1140,41 @@ export default function InvoicesPage() {
               </button>
               {viewInvoice.status !== 'paid' && (
                 <button className="btn btn-sm" style={{ background: 'var(--green)', color: '#fff', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => markStatus(viewInvoice.id, 'paid')}>
-                  <CheckCircle2 size={14} /> Mark Paid
+                  <CheckCircle2 size={14} /> Paid
                 </button>
               )}
-              <button className="btn btn-ghost btn-sm" onClick={() => setViewInvoice(null)}><X size={18} /></button>
             </div>
           </div>
 
+          {/* Template switcher */}
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', alignItems: 'center' }}>
+            <Palette size={14} style={{ color: 'var(--text-muted)' }} />
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginRight: '4px' }}>Template:</span>
+            {INVOICE_TEMPLATES.map(t => (
+              <button key={t.id} className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  const updated = { ...viewInvoice, template: t.id }
+                  setViewInvoice(updated)
+                  saveInvoices(invoices.map(inv => inv.id === updated.id ? updated : inv))
+                }}
+                style={{
+                  padding: '4px 12px', fontSize: '12px',
+                  background: (viewInvoice.template || 'classic') === t.id ? 'var(--accent)' : undefined,
+                  color: (viewInvoice.template || 'classic') === t.id ? '#fff' : undefined,
+                  borderRadius: '16px',
+                }}>
+                {t.name}
+              </button>
+            ))}
+          </div>
+
           {/* Professional invoice template */}
-          <div style={{ background: '#fff', color: '#1a1a1a', borderRadius: 'var(--radius)', padding: '40px', border: '1px solid #e5e5e5' }}>
+          <div style={{
+            background: '#fff', color: '#1a1a1a', borderRadius: 'var(--radius)', padding: 'clamp(16px, 4vw, 40px)',
+            border: `1px solid ${(viewInvoice.template || 'classic') === 'elegant' ? '#e8e4dc' : '#e5e5e5'}`,
+            borderTop: (viewInvoice.template || 'classic') === 'elegant' ? '4px solid #c8a45a' : (viewInvoice.template || 'classic') === 'modern' ? '4px solid #2563eb' : '1px solid #e5e5e5',
+            overflowX: 'auto',
+          }}>
             <InvoiceTemplate inv={viewInvoice} />
           </div>
 

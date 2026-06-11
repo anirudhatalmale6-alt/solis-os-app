@@ -79,10 +79,14 @@ export default function WhatsAppChatsPage() {
         const convos = {}
         for (const m of msgs) {
           if (!m.phone) continue
-          if (!convos[m.phone]) convos[m.phone] = { phone: m.phone, name: null, messages: [], lastMessage: null }
+          if (!convos[m.phone]) convos[m.phone] = { phone: m.phone, name: null, isLid: false, messages: [], lastMessage: null }
           convos[m.phone].messages.push(m)
           if (!convos[m.phone].lastMessage || m.timestamp > convos[m.phone].lastMessage) convos[m.phone].lastMessage = m.timestamp
           if (m.contactName && m.contactName !== 'there') convos[m.phone].name = m.contactName
+          if (m.isLid) convos[m.phone].isLid = true
+        }
+        for (const c of Object.values(convos)) {
+          if (!c.isLid && c.phone.replace(/\D/g, '').length > 13) c.isLid = true
         }
         const sorted = Object.values(convos).sort((a, b) => (b.lastMessage || '').localeCompare(a.lastMessage || ''))
         setConversations(sorted)
@@ -181,9 +185,9 @@ export default function WhatsAppChatsPage() {
   const isConnected = connectionStatus === 'connected'
 
   if (selectedPhone && selectedConv) {
-    const displayName = selectedConv.name && selectedConv.name !== 'there'
-      ? selectedConv.name
-      : formatPhone(selectedPhone)
+    const hasName = selectedConv.name && selectedConv.name !== 'there'
+    const displayName = hasName ? selectedConv.name : (selectedConv.isLid ? 'WhatsApp Contact' : (formatPhone(selectedPhone) || selectedPhone))
+    const phoneFormatted = selectedConv.isLid ? null : formatPhone(selectedPhone)
 
     return (
       <>
@@ -199,7 +203,7 @@ export default function WhatsAppChatsPage() {
             <div style={{ flex: 1 }}>
               <h1 className="page-title" style={{ marginBottom: '2px' }}>{displayName}</h1>
               <p className="page-subtitle">
-                {displayName !== formatPhone(selectedPhone) ? `${formatPhone(selectedPhone)} - ` : ''}
+                {phoneFormatted && displayName !== phoneFormatted ? `${phoneFormatted} - ` : ''}
                 {selectedConv.messages.length} messages
               </p>
             </div>
@@ -402,9 +406,9 @@ export default function WhatsAppChatsPage() {
         ) : (
           <div>
             {filteredConversations.map(conv => {
-              const displayName = conv.name && conv.name !== 'there'
-                ? conv.name
-                : formatPhone(conv.phone)
+              const hasName = conv.name && conv.name !== 'there'
+              const displayName = hasName ? conv.name : (conv.isLid ? 'WhatsApp Contact' : (formatPhone(conv.phone) || conv.phone))
+              const phoneFormatted = conv.isLid ? null : formatPhone(conv.phone)
               const lastMsg = conv.messages[conv.messages.length - 1]
 
               return (
@@ -437,9 +441,9 @@ export default function WhatsAppChatsPage() {
                           {conv.lastMessage ? timeAgo(conv.lastMessage) : ''}
                         </span>
                       </div>
-                      {displayName !== formatPhone(conv.phone) && (
+                      {phoneFormatted && displayName !== phoneFormatted && (
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                          {formatPhone(conv.phone)}
+                          {phoneFormatted}
                         </div>
                       )}
                       <div style={{
