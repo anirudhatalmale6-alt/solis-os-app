@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CalendarCheck, CheckCircle2, ChevronLeft, ChevronRight, Plus, X, Repeat, Trash2 } from 'lucide-react'
+import { CalendarCheck, CheckCircle2, ChevronLeft, ChevronRight, Plus, X, Repeat, Trash2, Bell, Loader2 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
 
@@ -44,6 +44,7 @@ export default function BookingsPage() {
   const [recurring, setRecurring] = useState('none')
   const [recurringCount, setRecurringCount] = useState(4)
   const [upcoming, setUpcoming] = useState([])
+  const [sendingReminder, setSendingReminder] = useState(null)
 
   const loadData = async () => {
     if (!user) return
@@ -121,6 +122,36 @@ export default function BookingsPage() {
     if (!confirm('Delete this booking permanently?')) return
     await dataStore.deleteBooking(id)
     await loadData()
+  }
+
+  const sendReminder = async (booking) => {
+    const phone = booking.customer_phone?.replace(/[^0-9]/g, '')
+    if (!phone) { alert('No phone number for this customer.'); return }
+    if (!business?.id) return
+
+    setSendingReminder(booking.id)
+    try {
+      const svcName = booking.service_name || serviceMap[booking.service_id] || 'your appointment'
+      const dateStr = new Date(booking.date + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+      const timeStr = formatTime12(booking.time)
+      const bizName = business.name || 'us'
+      const msg = `Hi ${booking.customer_name}! This is a friendly reminder about your upcoming appointment:\n\n${svcName}\nDate: ${dateStr}\nTime: ${timeStr}\n\nWe look forward to seeing you at ${bizName}!`
+
+      const resp = await fetch('https://wa.solis-os.com/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_id: business.id, phone, message: msg }),
+      })
+      const data = await resp.json()
+      if (data.success || data.messageId) {
+        alert(`Reminder sent to ${booking.customer_name}!`)
+      } else {
+        alert('Could not send: ' + (data.error || 'WhatsApp not connected'))
+      }
+    } catch (err) {
+      alert('Failed to send reminder. Make sure WhatsApp is connected.')
+    }
+    setSendingReminder(null)
   }
 
   const confirmedCount = bookings.filter(b => b.status === 'confirmed').length
@@ -248,22 +279,37 @@ export default function BookingsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {upcoming.map(b => (
               <div key={b.id}
-                onClick={() => setSelectedDate(b.date)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px',
                   background: 'var(--bg)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
-                  cursor: 'pointer', fontSize: '13px',
+                  fontSize: '13px',
                 }}
               >
-                <span style={{ fontWeight: 600, color: 'var(--amber)', minWidth: '80px' }}>
+                <span onClick={() => setSelectedDate(b.date)} style={{ fontWeight: 600, color: 'var(--amber)', minWidth: '80px', cursor: 'pointer' }}>
                   {new Date(b.date + 'T00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                 </span>
                 <span style={{ color: 'var(--text-muted)' }}>{formatTime12(b.time)}</span>
-                <span style={{ flex: 1, fontWeight: 500 }}>{b.customer_name}</span>
+                <span onClick={() => setSelectedDate(b.date)} style={{ flex: 1, fontWeight: 500, cursor: 'pointer' }}>{b.customer_name}</span>
                 <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{serviceMap[b.service_id] || 'Service'}</span>
                 {b.notes?.includes('WhatsApp') && (
                   <span style={{ fontSize: '11px', color: '#25d366', fontWeight: 600 }}>WA</span>
                 )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); sendReminder(b) }}
+                  disabled={sendingReminder === b.id || !b.customer_phone}
+                  title={b.customer_phone ? 'Send WhatsApp reminder' : 'No phone number'}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                    padding: '4px 10px', borderRadius: '6px', border: '1px solid #25d366',
+                    background: sendingReminder === b.id ? '#25d366' : 'rgba(37,211,102,0.08)',
+                    color: sendingReminder === b.id ? '#fff' : '#25d366',
+                    fontSize: '11px', fontWeight: 600, cursor: b.customer_phone ? 'pointer' : 'not-allowed',
+                    opacity: b.customer_phone ? 1 : 0.4, whiteSpace: 'nowrap',
+                  }}
+                >
+                  {sendingReminder === b.id ? <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <Bell size={12} />}
+                  Remind
+                </button>
               </div>
             ))}
           </div>

@@ -12,6 +12,9 @@ const INVOICE_TEMPLATES = [
   { id: 'classic', name: 'Classic', desc: 'Clean and professional' },
   { id: 'modern', name: 'Modern', desc: 'Contemporary with blue accents' },
   { id: 'elegant', name: 'Elegant', desc: 'Minimal and sophisticated' },
+  { id: 'executive', name: 'Executive', desc: 'Dark header, corporate style' },
+  { id: 'fresh', name: 'Fresh', desc: 'Green accents, light and airy' },
+  { id: 'sunset', name: 'Sunset', desc: 'Warm coral tones, friendly' },
 ]
 
 function generateInvoiceNumber() {
@@ -190,6 +193,188 @@ function buildInvoiceHTML(inv, sym, templateId = 'classic', bizName, bizEmail, b
             </td></tr>
             <tr><td style="padding:32px 48px 24px;text-align:center;border-top:1px solid #e8e4dc;margin-top:40px">
               <span style="font-size:11px;color:#ccc;letter-spacing:1px;font-family:Arial,sans-serif">Powered by Solis OS</span>
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>
+    </body></html>`
+  }
+
+  if (templateId === 'executive') {
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#e5e7eb;font-family:Arial,Helvetica,sans-serif">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#e5e7eb;padding:32px 0">
+        <tr><td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1)">
+            <tr><td style="background:#1e293b;padding:36px 40px">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="50%" style="vertical-align:top">
+                    ${logoImg ? `<div style="margin-bottom:12px">${logoImg.replace('display:block', 'display:inline-block')}</div>` : ''}
+                    <div style="font-size:14px;color:#94a3b8;margin-top:4px">${fromName}</div>
+                  </td>
+                  <td width="50%" style="vertical-align:top;text-align:right">
+                    <div style="font-size:28px;font-weight:700;color:#fff;letter-spacing:3px">INVOICE</div>
+                    <div style="font-size:13px;color:#94a3b8;margin-top:6px">${inv.number}</div>
+                    <div style="margin-top:10px"><span style="display:inline-block;padding:4px 14px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase;background:rgba(255,255,255,0.1);color:#e2e8f0;border:1px solid rgba(255,255,255,0.2)">${inv.status}</span></div>
+                  </td>
+                </tr>
+              </table>
+            </td></tr>
+            <tr><td style="padding:36px 40px">
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px">
+                <tr>
+                  <td width="50%" style="vertical-align:top">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;font-weight:600;margin-bottom:8px">From</div>
+                    <div style="font-size:15px;font-weight:600;color:#1e293b">${fromName}</div>
+                    ${fromEmail ? `<div style="font-size:13px;color:#64748b;margin-top:3px">${fromEmail}</div>` : ''}
+                    ${fromPhone ? `<div style="font-size:13px;color:#64748b;margin-top:2px">${fromPhone}</div>` : ''}
+                    ${fromAddr ? `<div style="font-size:13px;color:#64748b;margin-top:2px">${fromAddr}</div>` : ''}
+                  </td>
+                  <td width="50%" style="vertical-align:top">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#64748b;font-weight:600;margin-bottom:8px">Bill To</div>
+                    <div style="font-size:15px;font-weight:600;color:#1e293b">${inv.customer_name}</div>
+                    ${inv.customer_email ? `<div style="font-size:13px;color:#64748b;margin-top:3px">${inv.customer_email}</div>` : ''}
+                    ${inv.customer_phone ? `<div style="font-size:13px;color:#64748b;margin-top:2px">${inv.customer_phone}</div>` : ''}
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px">
+                <tr>
+                  <td><span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:600">Date</span><br/><span style="font-size:14px;color:#334155">${formatDate(inv.created_at)}</span></td>
+                  ${inv.due_date ? `<td><span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:600">Due Date</span><br/><span style="font-size:14px;color:#334155">${formatDate(inv.due_date)}</span></td>` : ''}
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px">
+                <tr style="background:#1e293b">
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#e2e8f0;text-align:left;font-weight:600">Description</th>
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#e2e8f0;text-align:center;font-weight:600;width:60px">Qty</th>
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#e2e8f0;text-align:right;font-weight:600;width:90px">Price</th>
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#e2e8f0;text-align:right;font-weight:600;width:100px">Total</th>
+                </tr>
+                ${itemsHTML}
+              </table>
+              ${totalsHTML.replace(/#2563eb/g, '#1e293b')}
+              ${notesHTML}
+            </td></tr>
+            <tr><td style="background:#f8fafc;padding:20px 40px;text-align:center;border-top:1px solid #e2e8f0">
+              <span style="font-size:12px;color:#94a3b8">Powered by Solis OS</span>
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>
+    </body></html>`
+  }
+
+  if (templateId === 'fresh') {
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#ecfdf5;font-family:Arial,Helvetica,sans-serif">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#ecfdf5;padding:32px 0">
+        <tr><td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.05)">
+            <tr><td style="padding:40px 40px 0">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="50%" style="vertical-align:top">
+                    ${logoImg || ''}
+                    <div style="font-size:16px;font-weight:700;color:#065f46;margin-top:${logoImg ? '10' : '0'}px">${fromName}</div>
+                    ${fromEmail ? `<div style="font-size:13px;color:#6b7280;margin-top:3px">${fromEmail}</div>` : ''}
+                    ${fromPhone ? `<div style="font-size:13px;color:#6b7280;margin-top:2px">${fromPhone}</div>` : ''}
+                    ${fromAddr ? `<div style="font-size:13px;color:#6b7280;margin-top:2px">${fromAddr}</div>` : ''}
+                  </td>
+                  <td width="50%" style="vertical-align:top;text-align:right">
+                    <div style="font-size:32px;font-weight:700;color:#10b981;letter-spacing:2px">INVOICE</div>
+                    <div style="font-size:14px;color:#6b7280;margin-top:4px">${inv.number}</div>
+                    <div style="margin-top:10px"><span style="display:inline-block;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;background:${stBg};color:${stFg}">${inv.status}</span></div>
+                  </td>
+                </tr>
+              </table>
+            </td></tr>
+            <tr><td style="padding:24px 40px"><hr style="border:none;border-top:2px solid #d1fae5;margin:0" /></td></tr>
+            <tr><td style="padding:0 40px">
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px">
+                <tr>
+                  <td width="50%" style="vertical-align:top">
+                    <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#10b981;font-weight:600;margin-bottom:8px">Bill To</div>
+                    <div style="font-size:16px;font-weight:600;color:#1a1a1a">${inv.customer_name}</div>
+                    ${inv.customer_email ? `<div style="font-size:13px;color:#6b7280;margin-top:4px">${inv.customer_email}</div>` : ''}
+                    ${inv.customer_phone ? `<div style="font-size:13px;color:#6b7280;margin-top:3px">${inv.customer_phone}</div>` : ''}
+                  </td>
+                  <td width="50%" style="vertical-align:top">
+                    <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#10b981;font-weight:600;margin-bottom:8px">Date</div>
+                    <div style="font-size:14px;color:#333">${formatDate(inv.created_at)}</div>
+                    ${inv.due_date ? `<div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#10b981;font-weight:600;margin-top:16px;margin-bottom:8px">Due Date</div><div style="font-size:14px;color:#333">${formatDate(inv.due_date)}</div>` : ''}
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;border-radius:12px;overflow:hidden;border:1px solid #d1fae5">
+                <tr style="background:#ecfdf5">
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#065f46;text-align:left;font-weight:600">Description</th>
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#065f46;text-align:center;font-weight:600;width:60px">Qty</th>
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#065f46;text-align:right;font-weight:600;width:90px">Price</th>
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#065f46;text-align:right;font-weight:600;width:100px">Total</th>
+                </tr>
+                ${itemsHTML}
+              </table>
+              ${totalsHTML.replace(/#2563eb/g, '#10b981').replace(/#1a1a1a/g, '#065f46')}
+              ${notesHTML}
+            </td></tr>
+            <tr><td style="padding:32px 40px 24px;text-align:center;border-top:1px solid #d1fae5;margin-top:40px">
+              <span style="font-size:11px;color:#a7f3d0">Powered by Solis OS</span>
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>
+    </body></html>`
+  }
+
+  if (templateId === 'sunset') {
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body style="margin:0;padding:0;background:#fff7ed;font-family:Arial,Helvetica,sans-serif">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed;padding:32px 0">
+        <tr><td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+            <tr><td style="background:linear-gradient(135deg,#ea580c,#f97316);padding:36px 40px;text-align:center">
+              ${logoImg ? `<div style="margin-bottom:16px">${logoImg.replace('display:block', 'display:inline-block')}</div>` : ''}
+              <div style="font-size:32px;font-weight:700;color:#fff;letter-spacing:3px">INVOICE</div>
+              <div style="font-size:14px;color:rgba(255,255,255,0.75);margin-top:6px">${inv.number}</div>
+              <div style="margin-top:12px"><span style="display:inline-block;padding:4px 16px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;background:rgba(255,255,255,0.2);color:#fff">${inv.status}</span></div>
+            </td></tr>
+            <tr><td style="padding:36px 40px">
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px">
+                <tr>
+                  <td width="50%" style="vertical-align:top">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#f97316;font-weight:600;margin-bottom:8px">From</div>
+                    <div style="font-size:15px;font-weight:600;color:#1e293b">${fromName}</div>
+                    ${fromEmail ? `<div style="font-size:13px;color:#64748b;margin-top:3px">${fromEmail}</div>` : ''}
+                    ${fromPhone ? `<div style="font-size:13px;color:#64748b;margin-top:2px">${fromPhone}</div>` : ''}
+                    ${fromAddr ? `<div style="font-size:13px;color:#64748b;margin-top:2px">${fromAddr}</div>` : ''}
+                  </td>
+                  <td width="50%" style="vertical-align:top">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#f97316;font-weight:600;margin-bottom:8px">Bill To</div>
+                    <div style="font-size:15px;font-weight:600;color:#1e293b">${inv.customer_name}</div>
+                    ${inv.customer_email ? `<div style="font-size:13px;color:#64748b;margin-top:3px">${inv.customer_email}</div>` : ''}
+                    ${inv.customer_phone ? `<div style="font-size:13px;color:#64748b;margin-top:2px">${inv.customer_phone}</div>` : ''}
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px">
+                <tr>
+                  <td><span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#f97316;font-weight:600">Date</span><br/><span style="font-size:14px;color:#334155">${formatDate(inv.created_at)}</span></td>
+                  ${inv.due_date ? `<td><span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#f97316;font-weight:600">Due Date</span><br/><span style="font-size:14px;color:#334155">${formatDate(inv.due_date)}</span></td>` : ''}
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border-radius:8px;overflow:hidden;border:1px solid #fed7aa">
+                <tr style="background:#f97316">
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#fff;text-align:left;font-weight:600">Description</th>
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#fff;text-align:center;font-weight:600;width:60px">Qty</th>
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#fff;text-align:right;font-weight:600;width:90px">Price</th>
+                  <th style="padding:12px 16px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:#fff;text-align:right;font-weight:600;width:100px">Total</th>
+                </tr>
+                ${itemsHTML}
+              </table>
+              ${totalsHTML.replace(/#2563eb/g, '#ea580c').replace(/#1a1a1a/g, '#ea580c')}
+              ${notesHTML}
+            </td></tr>
+            <tr><td style="background:#fff7ed;padding:20px 40px;text-align:center;border-top:1px solid #fed7aa">
+              <span style="font-size:12px;color:#fdba74">Powered by Solis OS</span>
             </td></tr>
           </table>
         </td></tr>
@@ -688,25 +873,37 @@ export default function InvoicesPage() {
 
     setSendingInvoice('whatsapp')
     try {
-      const text = buildInvoiceText(inv)
-      const resp = await fetch('https://wa.solis-os.com/api/whatsapp/send', {
+      const canvas = await drawInvoiceCanvas(inv)
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+      const reader = new FileReader()
+      const base64 = await new Promise((resolve) => {
+        reader.onload = () => {
+          const dataUrl = reader.result
+          resolve(dataUrl.split(',')[1])
+        }
+        reader.readAsDataURL(blob)
+      })
+      const invTotal = calcInvTotal(inv)
+      const caption = `Invoice ${inv.number} — ${sym}${invTotal.toFixed(2)}\nFrom: ${inv.business_name || business?.name || ''}\nDue: ${inv.due_date ? formatDate(inv.due_date) : 'N/A'}`
+      const resp = await fetch('https://wa.solis-os.com/api/whatsapp/send-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           business_id: business.id,
           phone,
-          message: text,
+          image: base64,
+          caption,
         }),
       })
       const data = await resp.json()
       if (data.success || data.messageId) {
-        alert('Invoice sent via WhatsApp!')
+        alert('Invoice image sent via WhatsApp!')
         markStatus(inv.id, 'sent')
       } else {
         alert('Could not send: ' + (data.error || 'WhatsApp not connected. Connect in the AI Assistant page first.'))
       }
     } catch (err) {
-      alert('Failed to send via WhatsApp. Make sure WhatsApp is connected in the AI Assistant page.')
+      alert('Failed to send via WhatsApp: ' + err.message)
     }
     setSendingInvoice(null)
     setShowSendMenu(null)
@@ -757,6 +954,17 @@ export default function InvoicesPage() {
     setShowSendMenu(null)
   }
 
+  const downloadInvoicePDF = (inv) => {
+    const html = buildInvoiceHTML(
+      inv, sym, inv.template || 'classic',
+      business?.name, business?.email, business?.phone, business?.address
+    )
+    const win = window.open('', '_blank')
+    win.document.write(html)
+    win.document.close()
+    setTimeout(() => { win.print() }, 400)
+  }
+
   const downloadInvoiceImage = async (inv) => {
     const canvas = await drawInvoiceCanvas(inv)
     const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
@@ -784,14 +992,17 @@ export default function InvoicesPage() {
     const tmpl = inv.template || 'classic'
     const isModern = tmpl === 'modern'
     const isElegant = tmpl === 'elegant'
-    const accentColor = isModern ? '#2563eb' : isElegant ? '#c8a45a' : '#1a1a1a'
-    const labelColor = isElegant ? '#c8a45a' : '#888'
+    const isExecutive = tmpl === 'executive'
+    const isFresh = tmpl === 'fresh'
+    const isSunset = tmpl === 'sunset'
+    const accentColor = isModern ? '#2563eb' : isElegant ? '#c8a45a' : isExecutive ? '#1e293b' : isFresh ? '#10b981' : isSunset ? '#ea580c' : '#1a1a1a'
+    const labelColor = isElegant ? '#c8a45a' : isFresh ? '#10b981' : isSunset ? '#f97316' : isExecutive ? '#64748b' : '#888'
     const fontFamily = isElegant ? 'Georgia, Times New Roman, serif' : 'inherit'
     return (
       <div ref={printRef} style={{ fontFamily }}>
         {/* Header: logo + invoice title */}
-        {isModern ? (
-          <div style={{ background: 'linear-gradient(135deg, #1e40af, #3b82f6)', borderRadius: '12px', padding: '32px', marginBottom: '32px', textAlign: 'center', color: '#fff' }}>
+        {(isModern || isSunset) ? (
+          <div style={{ background: isModern ? 'linear-gradient(135deg, #1e40af, #3b82f6)' : 'linear-gradient(135deg, #ea580c, #f97316)', borderRadius: '12px', padding: '32px', marginBottom: '32px', textAlign: 'center', color: '#fff' }}>
             {(inv.logo || businessLogo) && (
               <img src={inv.logo || businessLogo} alt="Logo" style={{ maxHeight: '56px', maxWidth: '120px', objectFit: 'contain', borderRadius: '6px', marginBottom: '12px' }} />
             )}
@@ -799,6 +1010,22 @@ export default function InvoicesPage() {
             <div style={{ fontSize: '15px', opacity: 0.75, marginTop: '4px' }}>{inv.number}</div>
             <div style={{ marginTop: '10px' }}>
               <span style={{ display: 'inline-block', padding: '4px 16px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', background: 'rgba(255,255,255,0.2)', color: '#fff' }}>{inv.status}</span>
+            </div>
+          </div>
+        ) : isExecutive ? (
+          <div style={{ background: '#1e293b', borderRadius: '8px', padding: '32px', marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              {(inv.logo || businessLogo) && (
+                <img src={inv.logo || businessLogo} alt="Logo" style={{ maxHeight: '56px', maxWidth: '120px', objectFit: 'contain', borderRadius: '6px', marginBottom: '12px' }} />
+              )}
+              <div style={{ fontSize: '14px', color: '#94a3b8' }}>{inv.business_name || business?.name || ''}</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '3px', color: '#fff' }}>INVOICE</div>
+              <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '6px' }}>{inv.number}</div>
+              <div style={{ marginTop: '10px' }}>
+                <span style={{ display: 'inline-block', padding: '4px 14px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', background: 'rgba(255,255,255,0.1)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.2)' }}>{inv.status}</span>
+              </div>
             </div>
           </div>
         ) : (
@@ -859,11 +1086,11 @@ export default function InvoicesPage() {
         {/* Items table */}
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px', borderRadius: isModern ? '8px' : undefined, overflow: isModern ? 'hidden' : undefined, border: isModern ? '1px solid #e2e8f0' : undefined }}>
           <thead>
-            <tr style={{ borderBottom: isModern ? 'none' : `2px solid ${isElegant ? '#e8e4dc' : '#e5e5e5'}`, background: isModern ? '#1e40af' : undefined }}>
-              <th style={{ textAlign: 'left', fontSize: '13px', textTransform: 'uppercase', letterSpacing: isElegant ? '1.5px' : '1px', color: isModern ? '#fff' : labelColor, fontWeight: 600, padding: '12px 10px 12px 0', fontFamily: isElegant ? 'Arial, sans-serif' : undefined }}>Description</th>
-              <th style={{ textAlign: 'center', fontSize: '13px', textTransform: 'uppercase', letterSpacing: isElegant ? '1.5px' : '1px', color: isModern ? '#fff' : labelColor, fontWeight: 600, padding: '12px 10px', width: '70px', fontFamily: isElegant ? 'Arial, sans-serif' : undefined }}>Qty</th>
-              <th style={{ textAlign: 'right', fontSize: '13px', textTransform: 'uppercase', letterSpacing: isElegant ? '1.5px' : '1px', color: isModern ? '#fff' : labelColor, fontWeight: 600, padding: '12px 10px', width: '100px', fontFamily: isElegant ? 'Arial, sans-serif' : undefined }}>Price</th>
-              <th style={{ textAlign: 'right', fontSize: '13px', textTransform: 'uppercase', letterSpacing: isElegant ? '1.5px' : '1px', color: isModern ? '#fff' : labelColor, fontWeight: 600, padding: '12px 0 12px 10px', width: '110px', fontFamily: isElegant ? 'Arial, sans-serif' : undefined }}>Total</th>
+            <tr style={{ borderBottom: (isModern || isExecutive || isSunset) ? 'none' : `2px solid ${isElegant ? '#e8e4dc' : isFresh ? '#d1fae5' : '#e5e5e5'}`, background: isModern ? '#1e40af' : isExecutive ? '#1e293b' : isSunset ? '#f97316' : isFresh ? '#ecfdf5' : undefined }}>
+              <th style={{ textAlign: 'left', fontSize: '13px', textTransform: 'uppercase', letterSpacing: isElegant ? '1.5px' : '1px', color: (isModern || isExecutive || isSunset) ? '#fff' : isFresh ? '#065f46' : labelColor, fontWeight: 600, padding: '12px 10px 12px 0', fontFamily: isElegant ? 'Arial, sans-serif' : undefined }}>Description</th>
+              <th style={{ textAlign: 'center', fontSize: '13px', textTransform: 'uppercase', letterSpacing: isElegant ? '1.5px' : '1px', color: (isModern || isExecutive || isSunset) ? '#fff' : isFresh ? '#065f46' : labelColor, fontWeight: 600, padding: '12px 10px', width: '70px', fontFamily: isElegant ? 'Arial, sans-serif' : undefined }}>Qty</th>
+              <th style={{ textAlign: 'right', fontSize: '13px', textTransform: 'uppercase', letterSpacing: isElegant ? '1.5px' : '1px', color: (isModern || isExecutive || isSunset) ? '#fff' : isFresh ? '#065f46' : labelColor, fontWeight: 600, padding: '12px 10px', width: '100px', fontFamily: isElegant ? 'Arial, sans-serif' : undefined }}>Price</th>
+              <th style={{ textAlign: 'right', fontSize: '13px', textTransform: 'uppercase', letterSpacing: isElegant ? '1.5px' : '1px', color: (isModern || isExecutive || isSunset) ? '#fff' : isFresh ? '#065f46' : labelColor, fontWeight: 600, padding: '12px 0 12px 10px', width: '110px', fontFamily: isElegant ? 'Arial, sans-serif' : undefined }}>Total</th>
             </tr>
           </thead>
           <tbody>
@@ -1126,6 +1353,9 @@ export default function InvoicesPage() {
                       {copied ? 'Copied!' : 'Copy to Clipboard'}
                     </button>
                     <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+                    <button className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: 'flex-start', gap: '8px', padding: '10px 12px' }} onClick={() => downloadInvoicePDF(viewInvoice)}>
+                      <Download size={16} style={{ color: 'var(--green)' }} /> Download / Print PDF
+                    </button>
                     <button className="btn btn-ghost btn-sm" style={{ width: '100%', justifyContent: 'flex-start', gap: '8px', padding: '10px 12px' }} onClick={() => downloadInvoiceImage(viewInvoice)}>
                       <Image size={16} style={{ color: 'var(--purple)' }} /> Download as Image
                     </button>
@@ -1171,8 +1401,8 @@ export default function InvoicesPage() {
           {/* Professional invoice template */}
           <div style={{
             background: '#fff', color: '#1a1a1a', borderRadius: 'var(--radius)', padding: 'clamp(16px, 4vw, 40px)',
-            border: `1px solid ${(viewInvoice.template || 'classic') === 'elegant' ? '#e8e4dc' : '#e5e5e5'}`,
-            borderTop: (viewInvoice.template || 'classic') === 'elegant' ? '4px solid #c8a45a' : (viewInvoice.template || 'classic') === 'modern' ? '4px solid #2563eb' : '1px solid #e5e5e5',
+            border: `1px solid ${(viewInvoice.template || 'classic') === 'elegant' ? '#e8e4dc' : (viewInvoice.template || 'classic') === 'fresh' ? '#d1fae5' : (viewInvoice.template || 'classic') === 'sunset' ? '#fed7aa' : '#e5e5e5'}`,
+            borderTop: (viewInvoice.template || 'classic') === 'elegant' ? '4px solid #c8a45a' : (viewInvoice.template || 'classic') === 'modern' ? '4px solid #2563eb' : (viewInvoice.template || 'classic') === 'executive' ? '4px solid #1e293b' : (viewInvoice.template || 'classic') === 'fresh' ? '4px solid #10b981' : (viewInvoice.template || 'classic') === 'sunset' ? '4px solid #f97316' : '1px solid #e5e5e5',
             overflowX: 'auto',
           }}>
             <InvoiceTemplate inv={viewInvoice} />
