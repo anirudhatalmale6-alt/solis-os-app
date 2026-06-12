@@ -101,7 +101,8 @@ export default function VerifyEmailPage() {
       }
       setVerified(true)
       setVerifying(false)
-      setTimeout(() => { window.location.href = '/setup' }, 1500)
+      const role = localStorage.getItem('solis_user_role')
+      setTimeout(() => { window.location.href = role === 'customer' ? '/explore' : '/setup' }, 1500)
       return
     }
 
@@ -118,7 +119,8 @@ export default function VerifyEmailPage() {
       localStorage.setItem('solis_os_data', JSON.stringify(data))
       setVerified(true)
       setVerifying(false)
-      setTimeout(() => { window.location.href = '/setup' }, 1500)
+      const role = localStorage.getItem('solis_user_role')
+      setTimeout(() => { window.location.href = role === 'customer' ? '/explore' : '/setup' }, 1500)
     } else {
       setError('Invalid code. Please try again.')
       setVerifying(false)

@@ -243,5 +243,10 @@ export const store = {
   getBusinessById(id) {
     const data = load()
     return data.businesses.find(b => b.id === id || b.slug === id) || null
-  }
+  },
+
+  listAllBusinesses() {
+    const data = load()
+    return data.businesses || []
+  },
 }

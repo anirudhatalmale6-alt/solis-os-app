@@ -7,6 +7,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [role, setRole] = useState(localStorage.getItem('solis_user_role') || 'business')
   const { signIn } = useAuth()
   const navigate = useNavigate()
 
@@ -25,7 +26,8 @@ export default function LoginPage() {
       if (result.error) {
         setError(result.error.message)
       } else {
-        navigate('/dashboard')
+        localStorage.setItem('solis_user_role', role)
+        navigate(role === 'customer' ? '/explore' : '/dashboard')
       }
     } catch (err) {
       setError('Something went wrong. Please try again.')
@@ -40,7 +42,38 @@ export default function LoginPage() {
           <img src="/logo-full.png" alt="Solis OS" style={{ height: '80px', width: 'auto' }} />
         </div>
         <h1 className="auth-title">Welcome back</h1>
-        <p className="auth-subtitle">Sign in to your dashboard</p>
+        <p className="auth-subtitle">Sign in to continue</p>
+
+        <div style={{
+          display: 'flex', borderRadius: '10px', overflow: 'hidden',
+          border: '1px solid var(--border)', marginBottom: '20px',
+        }}>
+          <button
+            type="button"
+            onClick={() => setRole('business')}
+            style={{
+              flex: 1, padding: '12px', fontSize: '14px', fontWeight: 600,
+              border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+              background: role === 'business' ? 'var(--accent, #f59e0b)' : 'transparent',
+              color: role === 'business' ? '#fff' : 'var(--text-secondary, #6b7280)',
+            }}
+          >
+            I'm a Business
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole('customer')}
+            style={{
+              flex: 1, padding: '12px', fontSize: '14px', fontWeight: 600,
+              border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+              borderLeft: '1px solid var(--border)',
+              background: role === 'customer' ? 'var(--accent, #f59e0b)' : 'transparent',
+              color: role === 'customer' ? '#fff' : 'var(--text-secondary, #6b7280)',
+            }}
+          >
+            I'm a Customer
+          </button>
+        </div>
 
         {error && <div className="auth-error">{error}</div>}
 

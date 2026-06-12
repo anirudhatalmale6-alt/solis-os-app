@@ -65,6 +65,13 @@ export const supabaseStore = {
     return null
   },
 
+  async listAllBusinesses() {
+    try {
+      const { data } = await supabase.from('businesses').select('id,name,industry,address,city,slug,phone,email,currency')
+      return data || []
+    } catch { return [] }
+  },
+
   async getBusinessById(id) {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
     if (isUUID) {
