@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Copy, Check, Bell, Clock, Star, Send, X, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Copy, Check, Bell, Clock, Star, Send, X, AlertTriangle, CheckCircle2, Mail, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { dataStore } from '../lib/dataStore'
 import { syncedSet } from '../lib/cloudSync'
@@ -28,6 +28,19 @@ export default function SettingsPage() {
   const [reminderSaved, setReminderSaved] = useState(false)
   const [cancelModal, setCancelModal] = useState(null)
   const [cancelLoading, setCancelLoading] = useState(false)
+
+  // Email config
+  const [emailProvider, setEmailProvider] = useState('gmail')
+  const [smtpEmail, setSmtpEmail] = useState('')
+  const [smtpPassword, setSmtpPassword] = useState('')
+  const [smtpHost, setSmtpHost] = useState('')
+  const [smtpPort, setSmtpPort] = useState('587')
+  const [showPassword, setShowPassword] = useState(false)
+  const [emailConfigured, setEmailConfigured] = useState(false)
+  const [emailSaving, setEmailSaving] = useState(false)
+  const [emailSaved, setEmailSaved] = useState(false)
+  const [emailTesting, setEmailTesting] = useState(false)
+  const [emailTestResult, setEmailTestResult] = useState(null)
 
   // Business fields
   const [name, setName] = useState('')
@@ -63,6 +76,20 @@ export default function SettingsPage() {
           if (waResp.ok) {
             const waData = await waResp.json()
             setWhatsappNumber(waData.whatsapp_number || '')
+          }
+        } catch {}
+        try {
+          const ecResp = await fetch(`${API_BASE}/api/email-config/${biz.id}`)
+          if (ecResp.ok) {
+            const ec = await ecResp.json()
+            if (ec.configured) {
+              setEmailProvider(ec.provider || 'gmail')
+              setSmtpEmail(ec.email || '')
+              setSmtpHost(ec.smtp_host || '')
+              setSmtpPort(ec.smtp_port || '587')
+              setEmailConfigured(true)
+              setSmtpPassword('')
+            }
           }
         } catch {}
         try {
@@ -245,6 +272,230 @@ export default function SettingsPage() {
           <button className="btn btn-primary btn-sm" onClick={handleSave}>
             Save Changes
           </button>
+        </div>
+      </div>
+
+      {/* Invoice Email Settings */}
+      <div className="card">
+        <div className="card-title">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Mail size={18} style={{ color: 'var(--accent-bright)' }} />
+            <span>Invoice Email Settings</span>
+          </div>
+          {emailSaved && <span className="badge badge-green">Saved</span>}
+          {emailConfigured && !emailSaved && <span className="badge" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a' }}>Connected</span>}
+        </div>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: '1.6' }}>
+          Send invoices from your own email address instead of solis.os.support@gmail.com. This looks more professional and avoids daily sending limits.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="form-group">
+            <label className="form-label">Email Provider</label>
+            <select
+              className="form-select"
+              value={emailProvider}
+              onChange={(e) => setEmailProvider(e.target.value)}
+            >
+              <option value="gmail">Gmail</option>
+              <option value="outlook">Outlook / Hotmail</option>
+              <option value="yahoo">Yahoo Mail</option>
+              <option value="custom">Custom SMTP (Business Email)</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
+            <input
+              type="email"
+              className="form-input"
+              value={smtpEmail}
+              onChange={(e) => setSmtpEmail(e.target.value)}
+              placeholder={emailProvider === 'gmail' ? 'your@gmail.com' : emailProvider === 'outlook' ? 'your@outlook.com' : emailProvider === 'yahoo' ? 'your@yahoo.com' : 'sales@yourbusiness.com'}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">{emailProvider === 'custom' ? 'SMTP Password' : 'App Password'}</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="form-input"
+                style={{ paddingRight: '40px' }}
+                value={smtpPassword}
+                onChange={(e) => setSmtpPassword(e.target.value)}
+                placeholder={emailConfigured ? '(saved - enter new to change)' : 'Paste your app password'}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+          {emailProvider === 'custom' && (
+            <>
+              <div className="form-group">
+                <label className="form-label">SMTP Host</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={smtpHost}
+                  onChange={(e) => setSmtpHost(e.target.value)}
+                  placeholder="mail.yourdomain.com"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">SMTP Port</label>
+                <select
+                  className="form-select"
+                  value={smtpPort}
+                  onChange={(e) => setSmtpPort(e.target.value)}
+                >
+                  <option value="587">587 (TLS - recommended)</option>
+                  <option value="465">465 (SSL)</option>
+                  <option value="25">25 (No encryption)</option>
+                </select>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* How to get App Password - collapsible info */}
+        {emailProvider !== 'custom' && (
+          <details style={{ marginTop: '12px', fontSize: '13px', color: 'var(--text-secondary)', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', padding: '12px 16px' }}>
+            <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--text-primary)', userSelect: 'none' }}>
+              How to get an App Password {emailProvider === 'gmail' ? '(Gmail)' : emailProvider === 'outlook' ? '(Outlook)' : '(Yahoo)'}
+            </summary>
+            <div style={{ marginTop: '12px', lineHeight: '1.8' }}>
+              {emailProvider === 'gmail' && (
+                <>
+                  <div>1. Go to myaccount.google.com</div>
+                  <div>2. Click "Security" on the left menu</div>
+                  <div>3. Under "How you sign in to Google", make sure 2-Step Verification is ON</div>
+                  <div>4. Go back to Security, scroll down and click "App passwords"</div>
+                  <div>5. Enter a name like "Solis OS" and click Create</div>
+                  <div>6. Copy the 16-character password and paste it above</div>
+                  <div style={{ marginTop: '8px', color: 'var(--amber)', fontWeight: 500 }}>Important: Use the generated app password, NOT your regular Gmail password.</div>
+                </>
+              )}
+              {emailProvider === 'outlook' && (
+                <>
+                  <div>1. Go to account.microsoft.com and sign in</div>
+                  <div>2. Click "Security" then "Advanced security options"</div>
+                  <div>3. Turn on Two-step verification if not already on</div>
+                  <div>4. Scroll down to "App passwords" and click "Create a new app password"</div>
+                  <div>5. Copy the password and paste it above</div>
+                  <div style={{ marginTop: '8px', color: 'var(--amber)', fontWeight: 500 }}>Note: You must have a Microsoft 365 or Outlook.com account with 2FA enabled.</div>
+                </>
+              )}
+              {emailProvider === 'yahoo' && (
+                <>
+                  <div>1. Go to login.yahoo.com and sign in</div>
+                  <div>2. Go to Account Security</div>
+                  <div>3. Turn on Two-step verification</div>
+                  <div>4. Click "Generate app password"</div>
+                  <div>5. Select "Other App", name it "Solis OS"</div>
+                  <div>6. Copy the password and paste it above</div>
+                </>
+              )}
+            </div>
+          </details>
+        )}
+
+        {emailProvider === 'custom' && (
+          <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--text-secondary)', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', padding: '12px 16px', lineHeight: '1.7' }}>
+            <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>For business emails (sales@yourbusiness.com)</div>
+            <div>Your hosting provider (GoDaddy, cPanel, Namecheap, etc.) will have the SMTP settings in your email management panel. Look for "Email Settings" or "SMTP Configuration". The password is usually the same one you use to log into your email.</div>
+          </div>
+        )}
+
+        {emailTestResult && (
+          <div style={{ marginTop: '12px', padding: '12px 16px', borderRadius: 'var(--radius-sm)', fontSize: '13px', fontWeight: 500, background: emailTestResult.success ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', color: emailTestResult.success ? '#16a34a' : '#ef4444', border: `1px solid ${emailTestResult.success ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+            {emailTestResult.success ? 'Test email sent successfully! Check your inbox.' : emailTestResult.error}
+          </div>
+        )}
+
+        <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-primary btn-sm"
+            disabled={emailSaving || !smtpEmail}
+            onClick={async () => {
+              if (!business) return
+              if (!smtpEmail) return
+              if (!emailConfigured && !smtpPassword) { alert('Please enter your app password.'); return }
+              setEmailSaving(true)
+              setEmailTestResult(null)
+              try {
+                const payload = { provider: emailProvider, email: smtpEmail }
+                if (smtpPassword) payload.password = smtpPassword
+                else if (emailConfigured) payload.password = '__KEEP__'
+                if (emailProvider === 'custom') {
+                  payload.smtp_host = smtpHost
+                  payload.smtp_port = smtpPort
+                }
+                const resp = await fetch(`${API_BASE}/api/email-config/${business.id}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload),
+                })
+                const data = await resp.json()
+                if (data.success) {
+                  setEmailConfigured(true)
+                  setEmailSaved(true)
+                  setTimeout(() => setEmailSaved(false), 3000)
+                } else {
+                  alert(data.error || 'Failed to save')
+                }
+              } catch { alert('Failed to save email settings') }
+              setEmailSaving(false)
+            }}
+          >
+            {emailSaving ? 'Saving...' : 'Save Email Settings'}
+          </button>
+          <button
+            className="btn btn-sm"
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
+            disabled={emailTesting || !emailConfigured}
+            onClick={async () => {
+              if (!business) return
+              setEmailTesting(true)
+              setEmailTestResult(null)
+              try {
+                const resp = await fetch(`${API_BASE}/api/email-config/${business.id}/test`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ test_to: smtpEmail }),
+                })
+                const data = await resp.json()
+                setEmailTestResult(data.success ? { success: true } : { error: data.error || 'Test failed' })
+              } catch { setEmailTestResult({ error: 'Connection error. Try again.' }) }
+              setEmailTesting(false)
+            }}
+          >
+            {emailTesting ? 'Sending...' : 'Send Test Email'}
+          </button>
+          {emailConfigured && (
+            <button
+              className="btn btn-sm"
+              style={{ color: '#ef4444', background: 'none', border: '1px solid rgba(239,68,68,0.3)' }}
+              onClick={async () => {
+                if (!business || !confirm('Remove your email settings? Invoices will be sent from the default Solis OS email.')) return
+                try {
+                  await fetch(`${API_BASE}/api/email-config/${business.id}`, { method: 'DELETE' })
+                  setEmailConfigured(false)
+                  setSmtpEmail('')
+                  setSmtpPassword('')
+                  setSmtpHost('')
+                  setSmtpPort('587')
+                  setEmailProvider('gmail')
+                  setEmailTestResult(null)
+                } catch {}
+              }}
+            >
+              Remove
+            </button>
+          )}
         </div>
       </div>
 

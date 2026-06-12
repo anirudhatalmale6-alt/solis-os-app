@@ -939,6 +939,7 @@ export default function InvoicesPage() {
           invoice_number: inv.number,
           total_amount: `${sym}${invTotal.toFixed(2)}`,
           customer_name: inv.customer_name,
+          business_id: business?.id || '',
         }),
       })
       const data = await resp.json()
