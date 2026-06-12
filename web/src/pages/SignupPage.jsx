@@ -42,7 +42,7 @@ export default function SignupPage() {
 
     setLoading(true)
     try {
-      const result = await signUp(email, password, fullName)
+      const result = await signUp(email, password, fullName, role)
       if (result.error) {
         setError(result.error.message)
       } else if (result.confirmEmail) {

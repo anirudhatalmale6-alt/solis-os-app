@@ -1,18 +1,18 @@
 import { supabase } from './supabase'
 
 export const supabaseStore = {
-  async signUp(email, password, fullName) {
+  async signUp(email, password, fullName, role) {
     try {
       const resp = await fetch('https://api.solis-os.com/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, fullName }),
+        body: JSON.stringify({ email, password, fullName, role: role || 'business' }),
       })
       const result = await resp.json()
       if (!resp.ok) return { error: { message: result.error || 'Signup failed' } }
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
       if (signInError) return { error: { message: signInError.message } }
-      return { data: { user: { id: signInData.user.id, email: signInData.user.email, full_name: fullName } }, error: null }
+      return { data: { user: { id: signInData.user.id, email: signInData.user.email, full_name: fullName, role: signInData.user.user_metadata?.role || role } }, error: null }
     } catch (e) {
       return { error: { message: 'Connection error. Please try again.' } }
     }
@@ -21,7 +21,7 @@ export const supabaseStore = {
   async signIn(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { error: { message: error.message } }
-    return { data: { user: { id: data.user.id, email: data.user.email, full_name: data.user.user_metadata?.full_name } }, error: null }
+    return { data: { user: { id: data.user.id, email: data.user.email, full_name: data.user.user_metadata?.full_name, role: data.user.user_metadata?.role } }, error: null }
   },
 
   async signOut() {
@@ -33,7 +33,7 @@ export const supabaseStore = {
     const { data } = await supabase.auth.getSession()
     if (!data.session) return null
     const user = data.session.user
-    return { user: { id: user.id, email: user.email, full_name: user.user_metadata?.full_name } }
+    return { user: { id: user.id, email: user.email, full_name: user.user_metadata?.full_name, role: user.user_metadata?.role } }
   },
 
   async createBusiness(biz) {

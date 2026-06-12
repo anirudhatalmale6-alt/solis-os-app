@@ -154,12 +154,13 @@ export default function VerifyEmailPage() {
     : ''
 
   if (verified) {
+    const verifiedRole = localStorage.getItem('solis_user_role')
     return (
       <div className="auth-page">
         <div className="auth-card" style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '64px', marginBottom: '16px' }}>✓</div>
           <h1 className="auth-title">Email Verified</h1>
-          <p className="auth-subtitle">Redirecting to setup...</p>
+          <p className="auth-subtitle">{verifiedRole === 'customer' ? 'Redirecting to explore...' : 'Redirecting to setup...'}</p>
         </div>
       </div>
     )

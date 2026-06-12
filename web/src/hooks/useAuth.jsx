@@ -11,7 +11,12 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const init = async () => {
       const session = await dataStore.getSession()
-      if (session) setUser(session.user)
+      if (session) {
+        setUser(session.user)
+        if (session.user.role && !localStorage.getItem('solis_user_role')) {
+          localStorage.setItem('solis_user_role', session.user.role)
+        }
+      }
       setLoading(false)
     }
     init()
@@ -19,7 +24,11 @@ export function AuthProvider({ children }) {
     if (useSupabase && supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session?.user) {
-          setUser({ id: session.user.id, email: session.user.email, full_name: session.user.user_metadata?.full_name })
+          const role = session.user.user_metadata?.role
+          setUser({ id: session.user.id, email: session.user.email, full_name: session.user.user_metadata?.full_name, role })
+          if (role && !localStorage.getItem('solis_user_role')) {
+            localStorage.setItem('solis_user_role', role)
+          }
         } else {
           setUser(null)
         }
@@ -28,15 +37,20 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const signUp = async (email, password, fullName) => {
-    const result = await dataStore.signUp(email, password, fullName)
+  const signUp = async (email, password, fullName, role) => {
+    const result = await dataStore.signUp(email, password, fullName, role)
     if (result.data?.user) setUser(result.data.user)
     return result
   }
 
   const signIn = async (email, password) => {
     const result = await dataStore.signIn(email, password)
-    if (result.data) setUser(result.data.user)
+    if (result.data) {
+      setUser(result.data.user)
+      if (result.data.user.role && !localStorage.getItem('solis_user_role')) {
+        localStorage.setItem('solis_user_role', result.data.user.role)
+      }
+    }
     return result
   }
 
