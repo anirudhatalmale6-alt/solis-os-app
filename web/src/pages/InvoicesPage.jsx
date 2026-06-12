@@ -762,7 +762,7 @@ export default function InvoicesPage() {
     if (logoSrc) {
       try {
         const img = new window.Image()
-        img.crossOrigin = 'anonymous'
+        if (!logoSrc.startsWith('data:')) img.crossOrigin = 'anonymous'
         await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = logoSrc })
         const maxH = 80, maxW = 80
         const ratio = Math.min(maxW / img.width, maxH / img.height, 1)
@@ -917,24 +917,33 @@ export default function InvoicesPage() {
     try {
       const bizName = inv.business_name || business?.name || 'Business'
       const subject = `Invoice ${inv.number} from ${bizName}`
-      const htmlBody = buildInvoiceHTML(
-        inv, sym, inv.template || 'classic',
-        business?.name, business?.email, business?.phone, business?.address
-      )
+      const invTotal = calcInvTotal(inv)
+
+      const canvas = await drawInvoiceCanvas(inv)
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+      const base64 = await new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result.split(',')[1])
+        reader.readAsDataURL(blob)
+      })
+
       const resp = await fetch(`${API_BASE}/api/send-invoice-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: custEmail,
           subject,
-          html: htmlBody,
           from_name: bizName,
           reply_to: business?.email || '',
+          invoice_image: base64,
+          invoice_number: inv.number,
+          total_amount: `${sym}${invTotal.toFixed(2)}`,
+          customer_name: inv.customer_name,
         }),
       })
       const data = await resp.json()
       if (data.success) {
-        alert('Invoice emailed to ' + custEmail + '!')
+        alert('Invoice PDF emailed to ' + custEmail + '!')
         markStatus(inv.id, 'sent')
       } else {
         alert('Could not send email: ' + (data.error || 'Unknown error'))
