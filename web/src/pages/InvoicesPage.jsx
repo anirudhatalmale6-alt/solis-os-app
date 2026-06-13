@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import {
-  FileText, Plus, Send, CheckCircle2, Clock, X,
+  FileText, Plus, Send, CheckCircle2, Clock, X, Trash2,
   Download, Eye, EyeOff, DollarSign, Printer, Copy, Check,
   MessageCircle, Mail, Image, Percent, ChevronDown, Pencil, Palette, Settings,
 } from 'lucide-react'
@@ -1741,6 +1741,7 @@ export default function InvoicesPage() {
                       {inv.status !== 'paid' && (
                         <button className="btn btn-ghost btn-sm" onClick={() => markStatus(inv.id, 'paid')} title="Mark Paid" style={{ color: 'var(--green)' }}><CheckCircle2 size={14} /></button>
                       )}
+                      <button className="btn btn-ghost btn-sm" onClick={() => { if (confirm('Delete this invoice?')) deleteInvoice(inv.id) }} title="Delete" style={{ color: 'var(--rose, #ef4444)' }}><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
