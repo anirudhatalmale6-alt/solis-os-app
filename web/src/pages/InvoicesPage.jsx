@@ -1228,6 +1228,20 @@ export default function InvoicesPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {emailSaved && <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 500 }}>Saved!</span>}
             {!emailConfigured && <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--amber, #f59e0b)', whiteSpace: 'nowrap' }}>Set up now</span>}
+            {emailConfigured && (
+              <span
+                role="button"
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  if (!business || !confirm('Disconnect your email? Invoices will use the default Solis OS email instead.')) return
+                  try { await fetch(`${API_BASE}/api/email-config/${business.id}`, { method: 'DELETE' }) } catch {}
+                  setEmailConfigured(false); setSmtpEmail(''); setSmtpPassword(''); setSmtpHost(''); setSmtpPort('587'); setEmailProvider('gmail'); setEmailTestResult(null); setEmailSetupOpen(false)
+                }}
+                style={{ fontSize: '12px', color: '#ef4444', cursor: 'pointer', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.04)', whiteSpace: 'nowrap', fontWeight: 500 }}
+              >
+                Disconnect
+              </span>
+            )}
             <ChevronDown size={16} style={{ color: 'var(--text-muted)', transform: emailSetupOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
           </div>
         </button>
