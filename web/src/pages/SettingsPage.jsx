@@ -290,7 +290,7 @@ export default function SettingsPage() {
         <div style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.06), rgba(147,51,234,0.06))', border: '1px solid rgba(59,130,246,0.15)', borderRadius: '10px', padding: '16px 20px', marginBottom: '20px' }}>
           <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>Why set this up?</div>
           <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.7' }}>
-            When you send invoices to customers, they currently come from "solis.os.support@gmail.com". By connecting your own email here, invoices will come directly from YOUR email address (like sales@yourbusiness.com). This looks more professional and your customers will trust it more.
+            Connect your own email so invoices are sent directly from your email address. This looks more professional and your customers will trust it more.
           </div>
         </div>
 

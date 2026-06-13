@@ -1204,27 +1204,30 @@ export default function InvoicesPage() {
       )}
 
       {/* Email Setup Banner */}
-      <div style={{ marginBottom: '16px', borderRadius: '10px', border: `1px solid ${emailConfigured ? 'rgba(34,197,94,0.2)' : 'var(--border)'}`, background: emailConfigured ? 'rgba(34,197,94,0.04)' : 'var(--bg-primary, #fff)', overflow: 'hidden' }}>
+      <div style={{ marginBottom: '16px', borderRadius: '10px', border: emailConfigured ? '1px solid rgba(34,197,94,0.25)' : '2px solid var(--amber, #f59e0b)', background: emailConfigured ? 'rgba(34,197,94,0.04)' : 'linear-gradient(135deg, rgba(245,158,11,0.06), rgba(217,119,6,0.04))', overflow: 'hidden' }}>
         <button
           onClick={() => setEmailSetupOpen(!emailSetupOpen)}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Mail size={18} style={{ color: emailConfigured ? '#16a34a' : 'var(--accent-bright)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: emailConfigured ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Mail size={18} style={{ color: emailConfigured ? '#16a34a' : 'var(--amber, #f59e0b)' }} />
+            </div>
             {emailConfigured ? (
               <div>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#16a34a' }}>Invoices sent from: </span>
-                <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{smtpEmail}</span>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#16a34a' }}>Email Connected</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>Invoices are sent from <strong style={{ color: 'var(--text-primary)' }}>{smtpEmail}</strong></div>
               </div>
             ) : (
               <div>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Set up your email </span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>- Send invoices from your own email address instead of solis.os.support@gmail.com</span>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>Connect Your Email to Send Invoices</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>Set up your email address so your customers receive invoices directly from you</div>
               </div>
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {emailSaved && <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 500 }}>Saved!</span>}
+            {!emailConfigured && <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--amber, #f59e0b)', whiteSpace: 'nowrap' }}>Set up now</span>}
             <ChevronDown size={16} style={{ color: 'var(--text-muted)', transform: emailSetupOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
           </div>
         </button>
