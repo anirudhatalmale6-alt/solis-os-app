@@ -285,138 +285,184 @@ export default function SettingsPage() {
           {emailSaved && <span className="badge badge-green">Saved</span>}
           {emailConfigured && !emailSaved && <span className="badge" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a' }}>Connected</span>}
         </div>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: '1.6' }}>
-          Send invoices from your own email address instead of solis.os.support@gmail.com. This looks more professional and avoids daily sending limits.
-        </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div className="form-group">
-            <label className="form-label">Email Provider</label>
-            <select
-              className="form-select"
-              value={emailProvider}
-              onChange={(e) => setEmailProvider(e.target.value)}
-            >
-              <option value="gmail">Gmail</option>
-              <option value="outlook">Outlook / Hotmail</option>
-              <option value="yahoo">Yahoo Mail</option>
-              <option value="custom">Custom SMTP (Business Email)</option>
-            </select>
+        {/* What is this - always visible explanation */}
+        <div style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.06), rgba(147,51,234,0.06))', border: '1px solid rgba(59,130,246,0.15)', borderRadius: '10px', padding: '16px 20px', marginBottom: '20px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>Why set this up?</div>
+          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.7' }}>
+            When you send invoices to customers, they currently come from "solis.os.support@gmail.com". By connecting your own email here, invoices will come directly from YOUR email address (like sales@yourbusiness.com). This looks more professional and your customers will trust it more.
           </div>
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <input
-              type="email"
-              className="form-input"
-              value={smtpEmail}
-              onChange={(e) => setSmtpEmail(e.target.value)}
-              placeholder={emailProvider === 'gmail' ? 'your@gmail.com' : emailProvider === 'outlook' ? 'your@outlook.com' : emailProvider === 'yahoo' ? 'your@yahoo.com' : 'sales@yourbusiness.com'}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">{emailProvider === 'custom' ? 'SMTP Password' : 'App Password'}</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                className="form-input"
-                style={{ paddingRight: '40px' }}
-                value={smtpPassword}
-                onChange={(e) => setSmtpPassword(e.target.value)}
-                placeholder={emailConfigured ? '(saved - enter new to change)' : 'Paste your app password'}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-          {emailProvider === 'custom' && (
-            <>
-              <div className="form-group">
-                <label className="form-label">SMTP Host</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={smtpHost}
-                  onChange={(e) => setSmtpHost(e.target.value)}
-                  placeholder="mail.yourdomain.com"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">SMTP Port</label>
-                <select
-                  className="form-select"
-                  value={smtpPort}
-                  onChange={(e) => setSmtpPort(e.target.value)}
-                >
-                  <option value="587">587 (TLS - recommended)</option>
-                  <option value="465">465 (SSL)</option>
-                  <option value="25">25 (No encryption)</option>
-                </select>
-              </div>
-            </>
-          )}
         </div>
 
-        {/* How to get App Password - collapsible info */}
-        {emailProvider !== 'custom' && (
-          <details style={{ marginTop: '12px', fontSize: '13px', color: 'var(--text-secondary)', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', padding: '12px 16px' }}>
-            <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--text-primary)', userSelect: 'none' }}>
-              How to get an App Password {emailProvider === 'gmail' ? '(Gmail)' : emailProvider === 'outlook' ? '(Outlook)' : '(Yahoo)'}
-            </summary>
-            <div style={{ marginTop: '12px', lineHeight: '1.8' }}>
-              {emailProvider === 'gmail' && (
-                <>
-                  <div>1. Go to myaccount.google.com</div>
-                  <div>2. Click "Security" on the left menu</div>
-                  <div>3. Under "How you sign in to Google", make sure 2-Step Verification is ON</div>
-                  <div>4. Go back to Security, scroll down and click "App passwords"</div>
-                  <div>5. Enter a name like "Solis OS" and click Create</div>
-                  <div>6. Copy the 16-character password and paste it above</div>
-                  <div style={{ marginTop: '8px', color: 'var(--amber)', fontWeight: 500 }}>Important: Use the generated app password, NOT your regular Gmail password.</div>
-                </>
-              )}
-              {emailProvider === 'outlook' && (
-                <>
-                  <div>1. Go to account.microsoft.com and sign in</div>
-                  <div>2. Click "Security" then "Advanced security options"</div>
-                  <div>3. Turn on Two-step verification if not already on</div>
-                  <div>4. Scroll down to "App passwords" and click "Create a new app password"</div>
-                  <div>5. Copy the password and paste it above</div>
-                  <div style={{ marginTop: '8px', color: 'var(--amber)', fontWeight: 500 }}>Note: You must have a Microsoft 365 or Outlook.com account with 2FA enabled.</div>
-                </>
-              )}
-              {emailProvider === 'yahoo' && (
-                <>
-                  <div>1. Go to login.yahoo.com and sign in</div>
-                  <div>2. Go to Account Security</div>
-                  <div>3. Turn on Two-step verification</div>
-                  <div>4. Click "Generate app password"</div>
-                  <div>5. Select "Other App", name it "Solis OS"</div>
-                  <div>6. Copy the password and paste it above</div>
-                </>
-              )}
-            </div>
-          </details>
-        )}
-
-        {emailProvider === 'custom' && (
-          <div style={{ marginTop: '12px', fontSize: '13px', color: 'var(--text-secondary)', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', padding: '12px 16px', lineHeight: '1.7' }}>
-            <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>For business emails (sales@yourbusiness.com)</div>
-            <div>Your hosting provider (GoDaddy, cPanel, Namecheap, etc.) will have the SMTP settings in your email management panel. Look for "Email Settings" or "SMTP Configuration". The password is usually the same one you use to log into your email.</div>
+        {/* Step 1: Choose provider */}
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--accent-bright)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, flexShrink: 0 }}>1</div>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>What email do you use?</div>
           </div>
-        )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginLeft: '32px' }}>
+            {[
+              { id: 'gmail', label: 'Gmail', desc: '@gmail.com' },
+              { id: 'outlook', label: 'Outlook', desc: '@outlook.com / @hotmail.com' },
+              { id: 'yahoo', label: 'Yahoo', desc: '@yahoo.com' },
+              { id: 'custom', label: 'Business Email', desc: '@yourdomain.com' },
+            ].map(p => (
+              <button
+                key={p.id}
+                onClick={() => setEmailProvider(p.id)}
+                style={{
+                  padding: '12px 8px', borderRadius: '8px', border: `2px solid ${emailProvider === p.id ? 'var(--accent-bright)' : 'var(--border)'}`,
+                  background: emailProvider === p.id ? 'rgba(59,130,246,0.05)' : 'var(--bg)', cursor: 'pointer',
+                  textAlign: 'center', transition: 'all 0.15s',
+                }}
+              >
+                <div style={{ fontSize: '13px', fontWeight: 600, color: emailProvider === p.id ? 'var(--accent-bright)' : 'var(--text-primary)' }}>{p.label}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{p.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Step 2: How to get app password - always visible, prominent */}
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--accent-bright)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, flexShrink: 0 }}>2</div>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+              {emailProvider === 'custom' ? 'Find your email server settings' : 'Get your App Password'}
+            </div>
+          </div>
+          <div style={{ marginLeft: '32px', background: 'var(--bg)', borderRadius: '10px', border: '1px solid var(--border)', padding: '16px 20px', fontSize: '13px', lineHeight: '2' }}>
+            {emailProvider === 'gmail' && (
+              <>
+                <div style={{ color: 'var(--text-secondary)', marginBottom: '8px' }}>An App Password is a special password that Gmail creates for you. It is NOT your regular Gmail password. Follow these steps:</div>
+                <div style={{ color: 'var(--text-primary)' }}>
+                  <div><strong>Step 1:</strong> Open <a href="https://myaccount.google.com/security" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-bright)', textDecoration: 'underline' }}>myaccount.google.com/security</a> and sign in to your Gmail</div>
+                  <div><strong>Step 2:</strong> Find "2-Step Verification" and turn it ON (if not already on)</div>
+                  <div><strong>Step 3:</strong> Go back to Security page, scroll down and click <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-bright)', textDecoration: 'underline' }}>App Passwords</a></div>
+                  <div><strong>Step 4:</strong> Type "Solis OS" as the app name and click "Create"</div>
+                  <div><strong>Step 5:</strong> Google will show you a 16-character password. Copy it and paste it below.</div>
+                </div>
+                <div style={{ marginTop: '10px', padding: '10px 14px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '6px', color: '#92400E', fontWeight: 500, fontSize: '12px' }}>
+                  Do NOT use your regular Gmail password. You need the special App Password that Google generates for you.
+                </div>
+              </>
+            )}
+            {emailProvider === 'outlook' && (
+              <>
+                <div style={{ color: 'var(--text-secondary)', marginBottom: '8px' }}>An App Password is a special password that Microsoft creates for you. It is NOT your regular Outlook password. Follow these steps:</div>
+                <div style={{ color: 'var(--text-primary)' }}>
+                  <div><strong>Step 1:</strong> Open <a href="https://account.microsoft.com/security" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-bright)', textDecoration: 'underline' }}>account.microsoft.com/security</a> and sign in</div>
+                  <div><strong>Step 2:</strong> Click "Advanced security options"</div>
+                  <div><strong>Step 3:</strong> Turn on "Two-step verification" if not already on</div>
+                  <div><strong>Step 4:</strong> Scroll down to "App passwords" and click "Create a new app password"</div>
+                  <div><strong>Step 5:</strong> Microsoft will show you a password. Copy it and paste it below.</div>
+                </div>
+                <div style={{ marginTop: '10px', padding: '10px 14px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '6px', color: '#92400E', fontWeight: 500, fontSize: '12px' }}>
+                  Do NOT use your regular Outlook password. You need the special App Password that Microsoft generates for you.
+                </div>
+              </>
+            )}
+            {emailProvider === 'yahoo' && (
+              <>
+                <div style={{ color: 'var(--text-secondary)', marginBottom: '8px' }}>An App Password is a special password that Yahoo creates for you. It is NOT your regular Yahoo password. Follow these steps:</div>
+                <div style={{ color: 'var(--text-primary)' }}>
+                  <div><strong>Step 1:</strong> Go to <a href="https://login.yahoo.com/myaccount/security" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-bright)', textDecoration: 'underline' }}>Yahoo Account Security</a> and sign in</div>
+                  <div><strong>Step 2:</strong> Turn on "Two-step verification" if not already on</div>
+                  <div><strong>Step 3:</strong> Click "Generate app password"</div>
+                  <div><strong>Step 4:</strong> Select "Other App" and type "Solis OS"</div>
+                  <div><strong>Step 5:</strong> Yahoo will show you a password. Copy it and paste it below.</div>
+                </div>
+              </>
+            )}
+            {emailProvider === 'custom' && (
+              <>
+                <div style={{ color: 'var(--text-secondary)', marginBottom: '8px' }}>For business emails like sales@yourbusiness.com, you need your email server details from your hosting provider.</div>
+                <div style={{ color: 'var(--text-primary)' }}>
+                  <div><strong>Where to find this:</strong> Log in to your hosting control panel (cPanel, Plesk, GoDaddy, Namecheap, etc.)</div>
+                  <div><strong>Look for:</strong> "Email Accounts" or "Email Settings" or "SMTP Configuration"</div>
+                  <div><strong>You need:</strong> Your SMTP server address (usually mail.yourdomain.com), and the password you use to log in to that email</div>
+                </div>
+                <div style={{ marginTop: '10px', padding: '10px 14px', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: '6px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                  Common SMTP servers: mail.yourdomain.com, smtp.yourdomain.com, or your server's IP address. If unsure, contact your hosting provider and ask for your "SMTP settings".
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Step 3: Enter credentials */}
+        <div style={{ marginBottom: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--accent-bright)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, flexShrink: 0 }}>3</div>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Enter your details</div>
+          </div>
+          <div style={{ marginLeft: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="form-group">
+              <label className="form-label">Your Email Address</label>
+              <input
+                type="email"
+                className="form-input"
+                value={smtpEmail}
+                onChange={(e) => setSmtpEmail(e.target.value)}
+                placeholder={emailProvider === 'gmail' ? 'your@gmail.com' : emailProvider === 'outlook' ? 'your@outlook.com' : emailProvider === 'yahoo' ? 'your@yahoo.com' : 'sales@yourbusiness.com'}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">{emailProvider === 'custom' ? 'Email Password' : 'App Password (from Step 2)'}</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="form-input"
+                  style={{ paddingRight: '40px' }}
+                  value={smtpPassword}
+                  onChange={(e) => setSmtpPassword(e.target.value)}
+                  placeholder={emailConfigured ? '(saved - enter new to change)' : emailProvider === 'custom' ? 'Your email password' : 'Paste the app password here'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            {emailProvider === 'custom' && (
+              <>
+                <div className="form-group">
+                  <label className="form-label">SMTP Server Address</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={smtpHost}
+                    onChange={(e) => setSmtpHost(e.target.value)}
+                    placeholder="mail.yourdomain.com"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Port</label>
+                  <select
+                    className="form-select"
+                    value={smtpPort}
+                    onChange={(e) => setSmtpPort(e.target.value)}
+                  >
+                    <option value="587">587 (TLS - most common)</option>
+                    <option value="465">465 (SSL)</option>
+                    <option value="25">25 (Unencrypted)</option>
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
 
         {emailTestResult && (
-          <div style={{ marginTop: '12px', padding: '12px 16px', borderRadius: 'var(--radius-sm)', fontSize: '13px', fontWeight: 500, background: emailTestResult.success ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', color: emailTestResult.success ? '#16a34a' : '#ef4444', border: `1px solid ${emailTestResult.success ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
-            {emailTestResult.success ? 'Test email sent successfully! Check your inbox.' : emailTestResult.error}
+          <div style={{ marginLeft: '32px', marginTop: '12px', padding: '12px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, background: emailTestResult.success ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', color: emailTestResult.success ? '#16a34a' : '#ef4444', border: `1px solid ${emailTestResult.success ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+            {emailTestResult.success ? 'Test email sent successfully! Check your inbox to confirm.' : emailTestResult.error}
           </div>
         )}
 
-        <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ marginLeft: '32px', marginTop: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button
             className="btn btn-primary btn-sm"
             disabled={emailSaving || !smtpEmail}
@@ -473,14 +519,14 @@ export default function SettingsPage() {
               setEmailTesting(false)
             }}
           >
-            {emailTesting ? 'Sending...' : 'Send Test Email'}
+            {emailTesting ? 'Sending test...' : 'Send Test Email'}
           </button>
           {emailConfigured && (
             <button
               className="btn btn-sm"
               style={{ color: '#ef4444', background: 'none', border: '1px solid rgba(239,68,68,0.3)' }}
               onClick={async () => {
-                if (!business || !confirm('Remove your email settings? Invoices will be sent from the default Solis OS email.')) return
+                if (!business || !confirm('Remove your email settings? Invoices will go back to being sent from the default Solis OS email.')) return
                 try {
                   await fetch(`${API_BASE}/api/email-config/${business.id}`, { method: 'DELETE' })
                   setEmailConfigured(false)
