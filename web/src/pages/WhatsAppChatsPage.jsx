@@ -245,7 +245,7 @@ export default function WhatsAppChatsPage() {
                       {m.direction === 'outbound' ? 'AI Bot' : (m.contactName && m.contactName !== 'there' ? m.contactName : 'Customer')}
                     </span>
                   </div>
-                  <div style={{ fontSize: '13px', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{m.text}</div>
+                  <div style={{ fontSize: '14px', lineHeight: '1.5', whiteSpace: 'pre-wrap', color: 'var(--text, #1A1D2E)', wordBreak: 'break-word' }}>{m.text}</div>
                   <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'right' }}>
                     {m.timestamp ? formatTimestamp(m.timestamp) : ''}
                   </div>
