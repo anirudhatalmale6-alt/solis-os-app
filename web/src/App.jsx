@@ -37,6 +37,7 @@ import WhatsAppChatsPage from './pages/WhatsAppChatsPage'
 import SignupsPage from './pages/SignupsPage'
 import LeadsPage from './pages/LeadsPage'
 import PartnersPage from './pages/PartnersPage'
+import PaymentsPage from './pages/PaymentsPage'
 import WhatsAppAssistantPage from './pages/WhatsAppAssistantPage'
 import CustomerExplorePage from './pages/CustomerExplorePage'
 
@@ -256,6 +257,7 @@ function AppRoutes() {
         <Route path="/signups" element={<AdminRoute><SignupsPage /></AdminRoute>} />
         <Route path="/leads" element={<AdminRoute><LeadsPage /></AdminRoute>} />
         <Route path="/partners" element={<AdminRoute><PartnersPage /></AdminRoute>} />
+        <Route path="/payments" element={<AdminRoute><PaymentsPage /></AdminRoute>} />
         <Route path="/booking-link" element={<BookingLinkPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/invoices" element={<InvoicesPage />} />

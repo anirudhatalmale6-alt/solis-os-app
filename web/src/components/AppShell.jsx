@@ -41,6 +41,7 @@ import {
   Bot,
   Timer,
   Handshake,
+  Wallet,
 } from 'lucide-react'
 
 const industryServiceIcon = {
@@ -108,6 +109,7 @@ export default function AppShell() {
           { to: '/signups', icon: UserPlus, label: 'Signups' },
           { to: '/leads', icon: PhoneIncoming, label: 'Website Leads' },
           { to: '/partners', icon: Handshake, label: 'Partners' },
+          { to: '/payments', icon: Wallet, label: 'Payments' },
         ] : []),
         { to: '/analytics', icon: BarChart3, label: 'Analytics' },
         { to: '/reports', icon: FileBarChart, label: 'Reports' },
