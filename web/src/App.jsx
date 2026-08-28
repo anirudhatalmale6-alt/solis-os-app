@@ -40,7 +40,9 @@ import PartnersPage from './pages/PartnersPage'
 import WhatsAppAssistantPage from './pages/WhatsAppAssistantPage'
 import CustomerExplorePage from './pages/CustomerExplorePage'
 
-const ADMIN_EMAIL = 'bbay.net@gmail.com'
+// Owner accounts that can see the admin-only pages (Signups, Website Leads,
+// Partners). Must match ADMIN_EMAILS in the API's partners.js.
+const ADMIN_EMAILS = ['bbay.net@gmail.com', 'power.media1984@gmail.com', 'joseph.geagea31@gmail.com']
 
 // A partner link arrives as ?ref=CODE on any entry URL. Remember it straight
 // away so it still applies after a redirect to /login or /setup.
@@ -52,7 +54,7 @@ try {
 function AdminRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return null
-  if (!user || user.email !== ADMIN_EMAIL) return <Navigate to="/dashboard" replace />
+  if (!user || !ADMIN_EMAILS.includes((user.email || '').toLowerCase())) return <Navigate to="/dashboard" replace />
   return children
 }
 

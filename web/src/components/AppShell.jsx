@@ -53,8 +53,9 @@ const industryServiceIcon = {
   other: Briefcase,
 }
 
-const ADMIN_EMAIL = 'bbay.net@gmail.com'
 const OWNER_EMAILS = ['bbay.net@gmail.com', 'power.media1984@gmail.com', 'joseph.geagea31@gmail.com']
+// Admin-only nav items are visible to every owner account, not just the first one
+const ADMIN_EMAILS = OWNER_EMAILS
 const SETTINGS_ITEM = { to: '/settings', icon: Settings, label: 'Settings' }
 const BILLING_ITEM = { to: '/billing', icon: CreditCard, label: 'Billing' }
 
@@ -103,7 +104,7 @@ export default function AppShell() {
         { to: '/whatsapp-chats', icon: MessageCircle, label: 'WhatsApp Chats' },
         { to: '/bookings', icon: CalendarCheck, label: 'Bookings' },
         { to: '/schedule', icon: Clock, label: 'Schedule' },
-        ...(user?.email === ADMIN_EMAIL ? [
+        ...(ADMIN_EMAILS.includes((user?.email || '').toLowerCase()) ? [
           { to: '/signups', icon: UserPlus, label: 'Signups' },
           { to: '/leads', icon: PhoneIncoming, label: 'Website Leads' },
           { to: '/partners', icon: Handshake, label: 'Partners' },
