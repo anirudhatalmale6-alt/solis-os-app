@@ -15,6 +15,8 @@ import {
   ChevronDown,
   ChevronRight,
   UserPlus,
+  Tag,
+  Wallet,
   X,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
@@ -49,7 +51,41 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-const EMPTY_FORM = { name: '', company: '', email: '', code: '', commission_rate: 20, commission_type: 'recurring' }
+const EMPTY_FORM = {
+  name: '', company: '', email: '', code: '',
+  commission_rate: 20, commission_type: 'recurring',
+  promo_type: 'amount', promo_value: 7, promo_months: 3,
+}
+
+const PROMO_DURATIONS = [
+  { value: 1, label: 'First month only' },
+  { value: 3, label: 'First 3 months' },
+  { value: 6, label: 'First 6 months' },
+  { value: 12, label: 'First 12 months' },
+  { value: 0, label: 'Forever' },
+]
+
+// What the offer reads like to the customer, and what it leaves you with.
+function promoMaths(form, planPrice) {
+  const price = Number(planPrice) || 0
+  const value = Number(form.promo_value) || 0
+  const rate = Number(form.commission_rate) || 0
+  const discount = value <= 0 ? 0
+    : form.promo_type === 'percent' ? Math.min(price, price * value / 100) : Math.min(price, value)
+  const customerPays = Math.max(0, price - discount)
+  const commission = customerPays * rate / 100
+  return {
+    discount: Math.round(discount * 100) / 100,
+    customerPays: Math.round(customerPays * 100) / 100,
+    commission: Math.round(commission * 100) / 100,
+    kept: Math.round((customerPays - commission) * 100) / 100,
+    offerText: value <= 0 ? ''
+      : `${form.promo_type === 'percent' ? value + '% off' : '$' + value + ' off'}` +
+        (Number(form.promo_months) === 0 ? ' for as long as you stay'
+          : Number(form.promo_months) === 1 ? ' your first month'
+          : ` for your first ${form.promo_months} months`),
+  }
+}
 
 export default function PartnersPage() {
   const months = monthOptions()
@@ -112,6 +148,9 @@ export default function PartnersPage() {
       code: p.code || '',
       commission_rate: p.commission_rate ?? 0,
       commission_type: p.commission_type || 'recurring',
+      promo_type: p.promo_type || 'amount',
+      promo_value: p.promo_value ?? 0,
+      promo_months: p.promo_months ?? 3,
     })
     setFormError('')
     setShowForm(true)
@@ -132,6 +171,8 @@ export default function PartnersPage() {
           // Leave the code out on create so the server generates one from the company name
           code: form.code.trim() ? form.code.trim() : undefined,
           commission_rate: Number(form.commission_rate) || 0,
+          promo_value: Number(form.promo_value) || 0,
+          promo_months: Number(form.promo_months) || 0,
         }),
       })
       const data = await resp.json()
@@ -194,7 +235,7 @@ export default function PartnersPage() {
   }
 
   const partners = report?.partners || []
-  const totals = report?.totals || { partners: 0, referred_total: 0, active_customers: 0, commission: 0 }
+  const totals = report?.totals || { partners: 0, referred_total: 0, active_customers: 0, commission: 0, discount_given: 0, net_revenue: 0, kept: 0 }
   const currency = report?.currency || 'AUD'
 
   const th = {
@@ -211,7 +252,7 @@ export default function PartnersPage() {
         <p className="page-subtitle">Commission-only sales partners, their referrals and what you owe them</p>
       </div>
 
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: '20px' }}>
+      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', marginBottom: '20px' }}>
         <div className="stat-card">
           <div className="stat-card-icon" style={{ color: 'var(--accent-bright)' }}><Handshake size={22} /></div>
           <div className="stat-card-label">Partners</div>
@@ -223,6 +264,11 @@ export default function PartnersPage() {
           <div className="stat-card-value">{totals.referred_total}</div>
         </div>
         <div className="stat-card">
+          <div className="stat-card-icon" style={{ color: '#ef4444' }}><Tag size={22} /></div>
+          <div className="stat-card-label">Discounts Given</div>
+          <div className="stat-card-value">{money(totals.discount_given, currency)}</div>
+        </div>
+        <div className="stat-card">
           <div className="stat-card-icon" style={{ color: 'var(--green)' }}><Users size={22} /></div>
           <div className="stat-card-label">Paying This Month</div>
           <div className="stat-card-value">{totals.active_customers}</div>
@@ -231,6 +277,11 @@ export default function PartnersPage() {
           <div className="stat-card-icon" style={{ color: 'var(--teal)' }}><DollarSign size={22} /></div>
           <div className="stat-card-label">Commission Owed</div>
           <div className="stat-card-value">{money(totals.commission, currency)}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card-icon" style={{ color: 'var(--green)' }}><Wallet size={22} /></div>
+          <div className="stat-card-label">You Keep</div>
+          <div className="stat-card-value">{money(totals.kept, currency)}</div>
         </div>
       </div>
 
@@ -289,12 +340,13 @@ export default function PartnersPage() {
                 <tr>
                   <th style={{ ...th, width: '32px' }}></th>
                   <th style={th}>Partner</th>
-                  <th style={th}>Referral link</th>
+                  <th style={th}>Link &amp; offer</th>
                   <th style={{ ...th, textAlign: 'center' }}>Rate</th>
-                  <th style={{ ...th, textAlign: 'center' }}>Referred</th>
-                  <th style={{ ...th, textAlign: 'center' }} title="Referred signups in the selected month">New</th>
+                  <th style={{ ...th, textAlign: 'center' }} title="Total referred, and how many signed up in the selected month">Referred</th>
                   <th style={{ ...th, textAlign: 'center' }} title="Referred customers paying in the selected month">Paying</th>
+                  <th style={{ ...th, textAlign: 'right' }} title="Discount handed to those customers this month">Discount</th>
                   <th style={{ ...th, textAlign: 'right' }}>Commission</th>
+                  <th style={{ ...th, textAlign: 'right' }} title="What lands in your pocket after the discount and the commission">You keep</th>
                   <th style={{ ...th, textAlign: 'center', width: '90px' }}></th>
                 </tr>
               </thead>
@@ -326,6 +378,9 @@ export default function PartnersPage() {
                           /partner/{p.code}
                           {copied === p.code ? <Check size={13} color="#22c55e" /> : <Copy size={13} />}
                         </button>
+                        <div style={{ fontSize: '11.5px', marginTop: '5px', color: p.promo_text ? 'var(--accent-bright, #2563eb)' : 'var(--text-muted)' }}>
+                          {p.promo_text || 'No customer discount'}
+                        </div>
                       </td>
                       <td style={{ ...td, textAlign: 'center' }}>
                         <div style={{ fontWeight: 600 }}>{p.commission_rate}%</div>
@@ -333,12 +388,20 @@ export default function PartnersPage() {
                           {p.commission_type === 'onetime' ? 'one-off' : 'recurring'}
                         </div>
                       </td>
-                      <td style={{ ...td, textAlign: 'center' }}>{p.referred_total}</td>
-                      <td style={{ ...td, textAlign: 'center' }}>{p.signups_this_month}</td>
+                      <td style={{ ...td, textAlign: 'center' }}>
+                        {p.referred_total}
+                        {p.signups_this_month > 0 && (
+                          <div style={{ fontSize: '11px', color: 'var(--green, #22c55e)' }}>+{p.signups_this_month} new</div>
+                        )}
+                      </td>
                       <td style={{ ...td, textAlign: 'center', fontWeight: 600, color: p.active_customers ? 'var(--green, #22c55e)' : 'inherit' }}>
                         {p.active_customers}
                       </td>
-                      <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{money(p.commission, currency)}</td>
+                      <td style={{ ...td, textAlign: 'right', color: p.discount_given ? '#ef4444' : 'var(--text-muted)' }}>
+                        {p.discount_given ? `-${money(p.discount_given, currency)}` : '-'}
+                      </td>
+                      <td style={{ ...td, textAlign: 'right', fontWeight: 600 }}>{money(p.commission, currency)}</td>
+                      <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: 'var(--green, #22c55e)' }}>{money(p.kept, currency)}</td>
                       <td style={{ ...td, textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <button onClick={() => openEdit(p)} title="Edit partner"
                           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '5px', color: 'var(--text-muted)' }}>
@@ -356,7 +419,7 @@ export default function PartnersPage() {
                     </tr>
                     {expanded === p.id && (
                       <tr>
-                        <td colSpan={9} style={{ padding: '0 12px 16px 44px', borderBottom: '1px solid var(--border)' }}>
+                        <td colSpan={10} style={{ padding: '0 12px 16px 44px', borderBottom: '1px solid var(--border)' }}>
                           {p.customers.length === 0 ? (
                             <div style={{ fontSize: '13px', color: 'var(--text-muted)', padding: '12px 0' }}>
                               Nobody has signed up with this link yet.
@@ -400,18 +463,22 @@ export default function PartnersPage() {
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={4} style={{ ...td, fontWeight: 700 }}>Total to pay out</td>
+                  <td colSpan={4} style={{ ...td, fontWeight: 700 }}>Totals for this month</td>
                   <td style={{ ...td, textAlign: 'center', fontWeight: 700 }}>{totals.referred_total}</td>
-                  <td style={{ ...td, textAlign: 'center', fontWeight: 700 }}>{totals.signups_this_month}</td>
                   <td style={{ ...td, textAlign: 'center', fontWeight: 700 }}>{totals.active_customers}</td>
+                  <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: '#ef4444' }}>
+                    {totals.discount_given ? `-${money(totals.discount_given, currency)}` : '-'}
+                  </td>
                   <td style={{ ...td, textAlign: 'right', fontWeight: 800, fontSize: '15px' }}>{money(totals.commission, currency)}</td>
+                  <td style={{ ...td, textAlign: 'right', fontWeight: 800, fontSize: '15px', color: 'var(--green, #22c55e)' }}>{money(totals.kept, currency)}</td>
                   <td></td>
                 </tr>
               </tfoot>
             </table>
 
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '12px', lineHeight: 1.6 }}>
-              Commission is only counted for referred customers who are actually paying in the selected month.
+              Commission is only counted for referred customers who are actually paying in the selected month,
+              and it is calculated on what they actually paid after their discount - not on the sticker price.
               Free trials and expired accounts are listed but earn nothing.
               {report?.unmatched_referrals ? ` ${report.unmatched_referrals} customer(s) carry a code from a deleted partner.` : ''}
             </p>
@@ -502,6 +569,91 @@ export default function PartnersPage() {
                   </select>
                 </div>
               </div>
+              <div style={{
+                border: '1px solid var(--border)', borderRadius: '12px',
+                padding: '16px', marginBottom: '18px', background: 'var(--bg-secondary, rgba(127,127,127,0.04))',
+              }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Tag size={14} /> Customer offer
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px', lineHeight: 1.55 }}>
+                  The discount the partner can advertise. This is what makes people actually use their code.
+                  Set the amount to 0 for a code with no discount.
+                </p>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div className="form-group" style={{ flex: '0 0 118px' }}>
+                    <label className="form-label">Discount</label>
+                    <select className="form-input" value={form.promo_type}
+                      onChange={e => setForm({ ...form, promo_type: e.target.value })}>
+                      <option value="amount">Amount</option>
+                      <option value="percent">Percent</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ flex: '0 0 86px' }}>
+                    <label className="form-label">{form.promo_type === 'percent' ? '%' : `${currency === 'AUD' ? 'A$' : '$'}`}</label>
+                    <input className="form-input" type="number" min="0" step="0.5" id="promo-value-input"
+                      value={form.promo_value}
+                      onChange={e => setForm({ ...form, promo_value: e.target.value })} />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label">Lasts</label>
+                    <select className="form-input" value={form.promo_months}
+                      onChange={e => setForm({ ...form, promo_months: Number(e.target.value) })}>
+                      {PROMO_DURATIONS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {(() => {
+                  const m = promoMaths(form, price)
+                  if (!m.offerText) {
+                    return (
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        No discount. The code still tracks who referred the customer.
+                      </div>
+                    )
+                  }
+                  const thin = m.kept < price * 0.4
+                  return (
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '10px' }}>
+                        Their pitch: &ldquo;Use code {(form.code || 'CODE').toUpperCase()} and get {m.offerText}.&rdquo;
+                      </div>
+                      <div style={{
+                        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px',
+                        fontSize: '12px', textAlign: 'center',
+                      }}>
+                        <div>
+                          <div style={{ color: 'var(--text-muted)' }}>Customer pays</div>
+                          <div style={{ fontWeight: 700, fontSize: '15px' }}>{money(m.customerPays, currency)}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: 'var(--text-muted)' }}>You pay them</div>
+                          <div style={{ fontWeight: 700, fontSize: '15px', color: '#ef4444' }}>{money(m.commission, currency)}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: 'var(--text-muted)' }}>You keep</div>
+                          <div style={{ fontWeight: 800, fontSize: '15px', color: thin ? '#ef4444' : 'var(--green, #22c55e)' }}>
+                            {money(m.kept, currency)}
+                          </div>
+                        </div>
+                      </div>
+                      {thin && (
+                        <div style={{
+                          marginTop: '10px', fontSize: '12px', lineHeight: 1.5,
+                          color: '#b45309', background: 'rgba(245,158,11,0.10)',
+                          border: '1px solid rgba(245,158,11,0.3)', borderRadius: '8px', padding: '8px 10px',
+                        }}>
+                          Heads up - the discount plus the commission leaves you {money(m.kept, currency)} out of {money(price, currency)}
+                          {form.promo_months === 0 ? ', and this discount never ends.' : ` for the first ${form.promo_months === 1 ? 'month' : form.promo_months + ' months'}.`}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+
               <div className="form-group">
                 <label className="form-label">Referral code {editingId ? '' : '(optional)'}</label>
                 <input className="form-input" value={form.code}

@@ -215,8 +215,19 @@ export default function SignupPage() {
               autoComplete="off"
             />
             {refPartner && (
-              <div style={{ fontSize: '12px', color: 'var(--green, #22c55e)', marginTop: '6px' }}>
-                Referred by {refPartner.company || refPartner.name}
+              <div style={{ marginTop: '8px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--green, #22c55e)' }}>
+                  Referred by {refPartner.company || refPartner.name}
+                </div>
+                {refPartner.promo_text && (
+                  <div style={{
+                    marginTop: '6px', padding: '8px 12px', borderRadius: '10px',
+                    background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.3)',
+                    fontSize: '13px', fontWeight: 600, color: 'var(--green, #16a34a)',
+                  }}>
+                    You get {refPartner.promo_text}
+                  </div>
+                )}
               </div>
             )}
             {!refPartner && refChecked && refCode.trim().length >= 3 && (
