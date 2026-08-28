@@ -1254,7 +1254,7 @@ export default function InvoicesPage() {
                 <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--accent-bright)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}>1</div>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>What type of email do you use?</div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginLeft: '30px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(75px, 1fr))', gap: '8px', marginLeft: '30px' }}>
                 {[
                   { id: 'gmail', label: 'Gmail', desc: '@gmail.com' },
                   { id: 'outlook', label: 'Outlook', desc: '@outlook / @hotmail' },

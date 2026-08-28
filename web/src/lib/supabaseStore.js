@@ -1,12 +1,12 @@
 import { supabase } from './supabase'
 
 export const supabaseStore = {
-  async signUp(email, password, fullName, role) {
+  async signUp(email, password, fullName, role, ref) {
     try {
       const resp = await fetch('https://api.solis-os.com/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, fullName, role: role || 'business' }),
+        body: JSON.stringify({ email, password, fullName, role: role || 'business', ref: ref || undefined }),
       })
       const result = await resp.json()
       if (!resp.ok) return { error: { message: result.error || 'Signup failed' } }

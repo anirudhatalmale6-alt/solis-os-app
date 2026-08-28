@@ -40,6 +40,7 @@ import {
   PhoneIncoming,
   Bot,
   Timer,
+  Handshake,
 } from 'lucide-react'
 
 const industryServiceIcon = {
@@ -53,7 +54,7 @@ const industryServiceIcon = {
 }
 
 const ADMIN_EMAIL = 'bbay.net@gmail.com'
-const OWNER_EMAILS = ['bbay.net@gmail.com']
+const OWNER_EMAILS = ['bbay.net@gmail.com', 'power.media1984@gmail.com', 'joseph.geagea31@gmail.com']
 const SETTINGS_ITEM = { to: '/settings', icon: Settings, label: 'Settings' }
 const BILLING_ITEM = { to: '/billing', icon: CreditCard, label: 'Billing' }
 
@@ -105,6 +106,7 @@ export default function AppShell() {
         ...(user?.email === ADMIN_EMAIL ? [
           { to: '/signups', icon: UserPlus, label: 'Signups' },
           { to: '/leads', icon: PhoneIncoming, label: 'Website Leads' },
+          { to: '/partners', icon: Handshake, label: 'Partners' },
         ] : []),
         { to: '/analytics', icon: BarChart3, label: 'Analytics' },
         { to: '/reports', icon: FileBarChart, label: 'Reports' },

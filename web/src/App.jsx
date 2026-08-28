@@ -36,10 +36,18 @@ import BillingPage from './pages/BillingPage'
 import WhatsAppChatsPage from './pages/WhatsAppChatsPage'
 import SignupsPage from './pages/SignupsPage'
 import LeadsPage from './pages/LeadsPage'
+import PartnersPage from './pages/PartnersPage'
 import WhatsAppAssistantPage from './pages/WhatsAppAssistantPage'
 import CustomerExplorePage from './pages/CustomerExplorePage'
 
 const ADMIN_EMAIL = 'bbay.net@gmail.com'
+
+// A partner link arrives as ?ref=CODE on any entry URL. Remember it straight
+// away so it still applies after a redirect to /login or /setup.
+try {
+  const incomingRef = new URLSearchParams(window.location.search).get('ref')
+  if (incomingRef) localStorage.setItem('solis_referral_code', incomingRef.toUpperCase())
+} catch {}
 
 function AdminRoute({ children }) {
   const { user, loading } = useAuth()
@@ -245,6 +253,7 @@ function AppRoutes() {
         <Route path="/whatsapp-chats" element={<WhatsAppChatsPage />} />
         <Route path="/signups" element={<AdminRoute><SignupsPage /></AdminRoute>} />
         <Route path="/leads" element={<AdminRoute><LeadsPage /></AdminRoute>} />
+        <Route path="/partners" element={<AdminRoute><PartnersPage /></AdminRoute>} />
         <Route path="/booking-link" element={<BookingLinkPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/invoices" element={<InvoicesPage />} />

@@ -37,8 +37,8 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const signUp = async (email, password, fullName, role) => {
-    const result = await dataStore.signUp(email, password, fullName, role)
+  const signUp = async (email, password, fullName, role, ref) => {
+    const result = await dataStore.signUp(email, password, fullName, role, ref)
     if (result.data?.user) setUser(result.data.user)
     return result
   }

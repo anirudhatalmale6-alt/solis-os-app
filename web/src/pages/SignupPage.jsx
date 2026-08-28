@@ -1,6 +1,8 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+
+const REF_STORAGE_KEY = 'solis_referral_code'
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState('')
@@ -13,8 +15,38 @@ export default function SignupPage() {
   const [showTerms, setShowTerms] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const [role, setRole] = useState(localStorage.getItem('solis_user_role') || 'business')
+  const [searchParams] = useSearchParams()
+  // Referral code: arrives as ?ref=CODE from a partner link, or is typed by hand.
+  // Kept in localStorage so it survives the email-verification round trip.
+  const [refCode, setRefCode] = useState(
+    (searchParams.get('ref') || localStorage.getItem(REF_STORAGE_KEY) || '').toUpperCase()
+  )
+  const [refPartner, setRefPartner] = useState(null)
+  const [refChecked, setRefChecked] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const fromLink = searchParams.get('ref')
+    if (fromLink) localStorage.setItem(REF_STORAGE_KEY, fromLink.toUpperCase())
+  }, [searchParams])
+
+  // Confirm the code is real so the customer sees who referred them before signing up
+  useEffect(() => {
+    const code = refCode.trim().toUpperCase()
+    if (code.length < 3) { setRefPartner(null); setRefChecked(false); return }
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      try {
+        const resp = await fetch(`https://api.solis-os.com/api/partners/resolve/${encodeURIComponent(code)}`)
+        const data = await resp.json()
+        if (!cancelled) { setRefPartner(data.valid ? data.partner : null); setRefChecked(true) }
+      } catch {
+        if (!cancelled) { setRefPartner(null); setRefChecked(false) }
+      }
+    }, 350)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [refCode])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -42,14 +74,16 @@ export default function SignupPage() {
 
     setLoading(true)
     try {
-      const result = await signUp(email, password, fullName, role)
+      const result = await signUp(email, password, fullName, role, refCode.trim().toUpperCase() || undefined)
       if (result.error) {
         setError(result.error.message)
       } else if (result.confirmEmail) {
         localStorage.setItem('solis_user_role', role)
+        localStorage.removeItem(REF_STORAGE_KEY)
         setEmailSent(true)
       } else {
         localStorage.setItem('solis_user_role', role)
+        localStorage.removeItem(REF_STORAGE_KEY)
         navigate(role === 'customer' ? '/explore' : '/setup')
       }
     } catch (err) {
@@ -167,6 +201,29 @@ export default function SignupPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               autoComplete="new-password"
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Referral code <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Have a code from a partner?"
+              value={refCode}
+              onChange={(e) => setRefCode(e.target.value.toUpperCase())}
+              style={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}
+              autoComplete="off"
+            />
+            {refPartner && (
+              <div style={{ fontSize: '12px', color: 'var(--green, #22c55e)', marginTop: '6px' }}>
+                Referred by {refPartner.company || refPartner.name}
+              </div>
+            )}
+            {!refPartner && refChecked && refCode.trim().length >= 3 && (
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                We don't recognise that code - you can still sign up without it.
+              </div>
+            )}
           </div>
 
           <div className="form-group" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '4px' }}>
